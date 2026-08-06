@@ -25,10 +25,13 @@ Rules you MUST follow:
 2. Every item you output must include the exact excerpt (a short verbatim quote or close \
    paraphrase) that supports it, the source name, and a confidence score between 0 and 1 \
    reflecting how directly the excerpt supports the claim.
-3. If a signal is ambiguous or weakly supported, either omit it or assign it a low confidence \
+3. If the raw signal includes a publish/event date (e.g. a news item's "published" field), copy \
+   it into "published_at" as an ISO 8601 string. If no date is present or determinable, set \
+   "published_at" to null. NEVER guess a date that isn't explicitly in the source data.
+4. If a signal is ambiguous or weakly supported, either omit it or assign it a low confidence \
    (< 0.5). Do not round up confidence to make a signal look stronger than the text supports.
-4. Return ONLY a JSON array of objects with keys: signal_label, excerpt, source, url, confidence. \
-   No prose, no markdown fences.
+5. Return ONLY a JSON array of objects with keys: signal_label, excerpt, source, url, \
+   confidence, published_at. No prose, no markdown fences.
 """
 
 
@@ -76,6 +79,10 @@ class EvidenceExtractor:
         for raw in raw_items:
             try:
                 items.append(EvidenceItem(**raw))
-            except Exception:  # noqa: BLE001 - a malformed item is dropped, not fatal
-                continue
+            except Exception:  # noqa: BLE001 - a malformed date shouldn't sink an otherwise-good item
+                raw_without_date = {k: v for k, v in raw.items() if k != "published_at"}
+                try:
+                    items.append(EvidenceItem(**raw_without_date))
+                except Exception:  # noqa: BLE001 - still malformed, drop it
+                    continue
         return items

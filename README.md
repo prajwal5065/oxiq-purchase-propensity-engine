@@ -27,13 +27,33 @@ small interface (`BaseCollector`, `EvidenceExtractor`, `BaseScoringAgent`).
 | 1 | Project structure | Done |
 | 2 | Database (SQLAlchemy models: Company, Signal, Evidence, Score, Recommendation) | Done |
 | 3 | Signal Collectors (Search/Tavily, Website/Crawl4AI, Tech/Wappalyzer, News/RSS) | Done |
-| 4 | Evidence Extraction Layer (Gemini, source+confidence enforced) | Done |
+| 4 | Evidence Extraction Layer (Gemini, source+confidence+published_at enforced) | Done |
 | 5 | Scoring Agents (Need, Urgency, Capacity, Digital Maturity, Org Readiness, Winnability) | Done |
-| 6 | Rule Engine | Not started |
-| 7 | Purchase Aggregator | Not started |
-| 8 | Recommendation Generator | Not started |
-| 9 | Full REST API (rule/aggregate-aware) | Partial - `/analyze`, `/company/{id}`, `/companies`, `/scores/{id}` exist and return pillar scores; aggregate purchase score is phase 6-7 |
+| 6 | Rule Engine (disqualifiers, adjustments, confidence factor, industry prior) | Done |
+| 7 | Purchase Aggregator (weighted 0-100 score) | Done |
+| 8 | Recommendation Generator (summary, fit reasons, risks, approach, priority) | Done - `solution_match` deliberately left `null`, see below |
+| 9 | Full REST API | Partial - `/analyze` now returns the full purchase score + recommendation; `/company/{id}`, `/companies`, `/scores/{id}` unchanged |
 | 10 | Frontend Dashboard | Not started |
+
+### Design notes on phases 5-8 (per product decisions)
+
+- **Capacity scorer** is deliberately global/source-agnostic (company size, revenue, funding,
+  hiring trends, expansion, public financial reports) - no India-specific MCA/GST dependency. If
+  that's needed later, add an MCA collector feeding the same `EvidenceItem` interface; the scorer
+  itself shouldn't need to change.
+- **Urgency scorer** applies time-decay: matched signals are weighted by how recently they were
+  published (`app/scoring/time_decay.py`, age-bucketed: this week / 3 months / 1 year / older).
+  Evidence with no determinable date gets a moderate default weight rather than being assumed
+  fresh or stale.
+- **Winnability scorer** uses only public signals (technology compatibility, company maturity,
+  existing AI adoption, decision-making indicators, engineering capability, industry fit) - no
+  CRM/relationship "warmth" data, which is out of scope for a public intelligence engine.
+- **Rule Engine** is config-driven (`app/rules/default_rules.json`), not code - disqualifiers and
+  score adjustments are structured `(field, operator, threshold) -> action` rules evaluated
+  safely (no `eval()`), so someone can tune "IF Capacity < 20 THEN PurchaseScore *= 0.5" without a
+  deploy.
+- **`solution_match`** ("best OxiQ offering") is present in the schema but always `null` - it
+  needs a product/offering catalog that hasn't been provided yet.
 
 ## Live vs. stub mode
 
@@ -76,10 +96,10 @@ nothing here depends on live network access or real API keys.
 
 ## API
 
-- `POST /analyze` - run the pipeline for a domain, return pillar scores
+- `POST /analyze` - run the full pipeline for a domain, return the purchase score + recommendation
 - `GET /company/{id}` - company summary
 - `GET /companies` - list companies
-- `GET /scores/{id}` - a company's pillar scores
+- `GET /scores/{id}` - a company's pillar + purchase-propensity scores
 - `GET /health` - liveness check
 
 ## Repository layout
@@ -92,9 +112,12 @@ app/
   schemas/     Pydantic request/response/domain schemas
   collectors/  Signal Collection Layer (search, website, tech, news)
   extraction/  Evidence Extraction Layer
-  scoring/     Scoring Agents (one file per pillar)
+  scoring/     Scoring Agents (one file per pillar) + time-decay helper
+  rules/       Rule Engine (config-driven disqualifiers/adjustments/priors)
+  aggregation/ Purchase Aggregator (weighted score + Rule Engine)
+  recommendation/ Recommendation Generator
   repositories/ Repository pattern over the ORM
-  services/    Orchestration (collectors -> extraction -> scoring)
+  services/    Orchestration (collectors -> extraction -> scoring -> rules -> aggregate -> recommendation)
   api/         FastAPI routers
 tests/
   unit/        no network, no DB

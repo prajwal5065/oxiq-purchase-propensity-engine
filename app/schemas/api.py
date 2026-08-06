@@ -4,7 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.schemas.score import PillarScore
+from app.schemas.recommendation import RecommendationResult
+from app.schemas.score import PurchaseScoreResult
 
 
 class AnalyzeRequest(BaseModel):
@@ -15,11 +16,8 @@ class AnalyzeRequest(BaseModel):
 class AnalyzeResponse(BaseModel):
     company_id: uuid.UUID
     domain: str
-    pillar_scores: list[PillarScore]
-    note: str = (
-        "Purchase Score aggregation, disqualifier rules, and the Recommendation "
-        "Generator are phases 6-9, not yet implemented - pillar scores only for now."
-    )
+    purchase_score: PurchaseScoreResult
+    recommendation: RecommendationResult
 
 
 class CompanySummary(BaseModel):

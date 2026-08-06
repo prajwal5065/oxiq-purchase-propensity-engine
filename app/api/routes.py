@@ -17,11 +17,16 @@ router = APIRouter()
 async def analyze_company(payload: AnalyzeRequest, db: AsyncSession = Depends(get_db)) -> AnalyzeResponse:
     repo = CompanyRepository(db)
     orchestrator = AnalysisOrchestrator(repo)
-    pillar_scores = await orchestrator.analyze(company_domain=payload.domain, company_name=payload.name)
+    result = await orchestrator.analyze(company_domain=payload.domain, company_name=payload.name)
     company = await repo.get_by_domain(payload.domain)
     if company is None:
         raise HTTPException(status_code=500, detail="Company was not persisted during analysis")
-    return AnalyzeResponse(company_id=company.id, domain=company.domain, pillar_scores=pillar_scores)
+    return AnalyzeResponse(
+        company_id=company.id,
+        domain=company.domain,
+        purchase_score=result.purchase_result,
+        recommendation=result.recommendation,
+    )
 
 
 @router.get("/company/{company_id}", response_model=CompanySummary)

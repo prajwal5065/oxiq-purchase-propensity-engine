@@ -23,6 +23,9 @@ class Recommendation(Base):
     top_risks: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     suggested_approach: Mapped[str] = mapped_column(Text, nullable=False)
     contact_priority: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")
+    solution_match: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="Best-fit OxiQ offering; null until a product catalog is wired in"
+    )
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

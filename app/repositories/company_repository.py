@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.company import Company
 from app.models.evidence import Evidence
+from app.models.recommendation import Recommendation
 from app.models.score import Score
 from app.models.signal import Signal
 
@@ -61,6 +62,10 @@ class CompanyRepository:
         for score in scores:
             score.company_id = company.id
             self.session.add(score)
+
+    async def add_recommendation(self, company: Company, recommendation: Recommendation) -> None:
+        recommendation.company_id = company.id
+        self.session.add(recommendation)
 
     async def commit(self) -> None:
         await self.session.commit()
