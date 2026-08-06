@@ -1,0 +1,27 @@
+{
+  "disqualifiers": [
+    {
+      "id": "no_evidence_at_all",
+      "description": "No pillar produced any matched evidence - nothing to base a recommendation on.",
+      "condition": { "field": "overall_confidence", "operator": "eq", "value": 0 }
+    }
+  ],
+  "adjustments": [
+    {
+      "id": "low_capacity_penalty",
+      "description": "IF Capacity < 20 THEN PurchaseScore *= 0.5 - can't afford us regardless of interest.",
+      "condition": { "field": "capacity", "operator": "lt", "value": 20 },
+      "action": "multiply",
+      "action_value": 0.5
+    },
+    {
+      "id": "low_need_penalty",
+      "description": "IF Need < 15 THEN PurchaseScore *= 0.6 - little evidence they have our problem at all.",
+      "condition": { "field": "need", "operator": "lt", "value": 15 },
+      "action": "multiply",
+      "action_value": 0.6
+    }
+  ],
+  "industry_priors": [],
+  "default_industry_prior": 1.0
+}

@@ -1,12 +1,13 @@
 """Repository pattern for Company + related rows. Keeps SQLAlchemy query
 code out of the service/API layers.
 """
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.company import Company
 from app.models.evidence import Evidence
+from app.models.recommendation import Recommendation
 from app.models.score import Score
 from app.models.signal import Signal
 
@@ -33,10 +34,21 @@ class CompanyRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_all(self, limit: int = 50, offset: int = 0) -> list[Company]:
+    async def list_all(
+        self, limit: int = 50, offset: int = 0, industry: str | None = None
+    ) -> list[Company]:
         stmt = select(Company).order_by(Company.created_at.desc()).limit(limit).offset(offset)
+        if industry:
+            stmt = stmt.where(Company.industry == industry)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def count_all(self, industry: str | None = None) -> int:
+        stmt = select(func.count()).select_from(Company)
+        if industry:
+            stmt = stmt.where(Company.industry == industry)
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
 
     async def get_or_create(self, domain: str, name: str) -> Company:
         existing = await self.get_by_domain(domain)
@@ -61,6 +73,10 @@ class CompanyRepository:
         for score in scores:
             score.company_id = company.id
             self.session.add(score)
+
+    async def add_recommendation(self, company: Company, recommendation: Recommendation) -> None:
+        recommendation.company_id = company.id
+        self.session.add(recommendation)
 
     async def commit(self) -> None:
         await self.session.commit()

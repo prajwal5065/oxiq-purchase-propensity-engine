@@ -4,7 +4,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.schemas.score import PillarScore
+from app.models.analysis_job import JobStatus
+from app.schemas.recommendation import RecommendationResult
+from app.schemas.score import PurchaseScoreResult
 
 
 class AnalyzeRequest(BaseModel):
@@ -12,14 +14,27 @@ class AnalyzeRequest(BaseModel):
     name: str | None = Field(default=None, description="Company display name, defaults to domain")
 
 
+class AnalyzeJobAccepted(BaseModel):
+    job_id: uuid.UUID
+    status: JobStatus
+    status_url: str
+
+
+class JobStatusResponse(BaseModel):
+    job_id: uuid.UUID
+    status: JobStatus
+    company_domain: str
+    company_id: uuid.UUID | None
+    error_message: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
 class AnalyzeResponse(BaseModel):
     company_id: uuid.UUID
     domain: str
-    pillar_scores: list[PillarScore]
-    note: str = (
-        "Purchase Score aggregation, disqualifier rules, and the Recommendation "
-        "Generator are phases 6-9, not yet implemented - pillar scores only for now."
-    )
+    purchase_score: PurchaseScoreResult
+    recommendation: RecommendationResult
 
 
 class CompanySummary(BaseModel):
@@ -31,3 +46,10 @@ class CompanySummary(BaseModel):
     last_processed_at: datetime | None
 
     model_config = {"from_attributes": True}
+
+
+class CompanyListResponse(BaseModel):
+    items: list[CompanySummary]
+    total: int
+    limit: int
+    offset: int

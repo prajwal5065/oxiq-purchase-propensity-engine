@@ -15,6 +15,7 @@ celery_app = Celery(
     "oxiq",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
+    include=["app.tasks.analysis_tasks"],
 )
 
 celery_app.conf.update(

@@ -1,5 +1,14 @@
-"""Winnability Score - public contact channels, partnerships, vendor
-friendliness, technology adoption.
+"""Winnability Score - how likely are we to actually win this deal, based
+only on public signals (no CRM/relationship data - that's out of scope for
+a public intelligence engine).
+
+Signals used:
+- Technology compatibility (stack that integrates cleanly with our product)
+- Company maturity (how established / stable the company is)
+- Existing AI adoption (already comfortable buying/using AI tools)
+- Decision-making indicators (visible procurement/vendor-evaluation process)
+- Engineering capability (a team that can actually implement and adopt us)
+- Industry fit (operates in a vertical our product is built for)
 """
 from app.models.score import ScoreType
 from app.scoring.base import BaseScoringAgent
@@ -8,18 +17,43 @@ from app.schemas.evidence import EvidenceItem
 from app.schemas.score import PillarScore
 
 KEYWORDS = [
-    "contact us",
-    "request a demo",
-    "partner program",
-    "partnership",
-    "integration marketplace",
-    "vendor",
-    "procurement",
+    # technology compatibility
+    "api integration",
+    "rest api",
+    "open api",
+    "integrates with",
+    "webhook",
+    # company maturity
+    "founded in",
+    "established",
+    "years in business",
+    "publicly traded",
+    "market leader",
+    # existing AI adoption
+    "uses ai",
+    "ai-powered",
+    "leverages machine learning",
+    "generative ai",
+    "adopted ai",
+    # decision-making indicators
+    "request for proposal",
     "rfp",
-    "open to new tools",
+    "vendor evaluation",
+    "procurement process",
+    "buying committee",
+    # engineering capability
+    "engineering blog",
+    "open source",
+    "github.com",
+    "engineering team",
+    # industry fit
+    "software company",
+    "saas",
+    "technology company",
+    "digital-first",
 ]
 
-MAX_EXPECTED_SIGNALS = 3
+MAX_EXPECTED_SIGNALS = 4
 
 
 class WinnabilityScoringAgent(BaseScoringAgent):
