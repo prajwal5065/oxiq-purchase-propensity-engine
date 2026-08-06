@@ -32,7 +32,7 @@ small interface (`BaseCollector`, `EvidenceExtractor`, `BaseScoringAgent`).
 | 6 | Rule Engine (disqualifiers, adjustments, confidence factor, industry prior) | Done |
 | 7 | Purchase Aggregator (weighted 0-100 score) | Done |
 | 8 | Recommendation Generator (summary, fit reasons, risks, approach, priority) | Done - `solution_match` deliberately left `null`, see below |
-| 9 | Full REST API | Partial - `/analyze` now returns the full purchase score + recommendation; `/company/{id}`, `/companies`, `/scores/{id}` unchanged |
+| 9 | Full REST API | Partial - see below |
 | 10 | Frontend Dashboard | Not started |
 
 ### Design notes on phases 5-8 (per product decisions)
@@ -80,7 +80,6 @@ docker compose up --build
 API comes up on `http://localhost:8000`. With Postgres running, apply migrations:
 
 ```bash
-alembic revision --autogenerate -m "init"
 alembic upgrade head
 ```
 
@@ -96,11 +95,27 @@ nothing here depends on live network access or real API keys.
 
 ## API
 
-- `POST /analyze` - run the full pipeline for a domain, return the purchase score + recommendation
+`POST /analyze` runs the pipeline as a background Celery job rather than blocking the request -
+a live run against real collectors/LLM would be too slow for a synchronous HTTP call. Poll
+`GET /jobs/{job_id}` for status, then fetch results once it's `completed`.
+
+- `POST /analyze` - `{"domain": "acme.com"}` -> `202 Accepted` with `{job_id, status, status_url}`
+- `GET /jobs/{job_id}` - job status (`pending` / `running` / `completed` / `failed`) + `company_id` once done
 - `GET /company/{id}` - company summary
-- `GET /companies` - list companies
+- `GET /companies?limit=&offset=&industry=` - paginated list with `total` count, optional industry filter
 - `GET /scores/{id}` - a company's pillar + purchase-propensity scores
+- `GET /company/{id}/recommendation` - latest recommendation for a company
 - `GET /health` - liveness check
+
+### Still open in Phase 9
+- No auth on any endpoint yet
+- No CI running the test suite on push/PR
+- `tests/integration/` is still empty - everything so far is unit tests against mocks/in-memory
+  SQLite; nothing has exercised the real Postgres + Celery + Redis stack together, and no live
+  API calls have been made against Tavily/Crawl4AI/Wappalyzer/Gemini
+- The Alembic migration in `alembic/versions/0001_initial.py` is hand-written (no live Postgres
+  available here to autogenerate against) - re-run `alembic revision --autogenerate` against a
+  real database before trusting it blindly in production
 
 ## Repository layout
 
@@ -118,6 +133,7 @@ app/
   recommendation/ Recommendation Generator
   repositories/ Repository pattern over the ORM
   services/    Orchestration (collectors -> extraction -> scoring -> rules -> aggregate -> recommendation)
+  tasks/       Celery task wrapping the pipeline for async /analyze
   api/         FastAPI routers
 tests/
   unit/        no network, no DB
