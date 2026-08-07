@@ -33,7 +33,7 @@ small interface (`BaseCollector`, `EvidenceExtractor`, `BaseScoringAgent`).
 | 7 | Purchase Aggregator (weighted 0-100 score) | Done |
 | 8 | Recommendation Generator (summary, fit reasons, risks, approach, priority) | Done - `solution_match` deliberately left `null`, see below |
 | 9 | Full REST API | Partial - see below |
-| 10 | Frontend Dashboard | Not started |
+| 10 | Frontend Dashboard | Done - see `frontend/README.md` for details and what's still open |
 
 ### Design notes on phases 5-8 (per product decisions)
 
@@ -139,4 +139,5 @@ tests/
   unit/        no network, no DB
   integration/ reserved for DB-backed tests
 alembic/       migrations
+frontend/      React + TypeScript + Tailwind dashboard - see frontend/README.md
 ```
