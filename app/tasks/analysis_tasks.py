@@ -58,4 +58,14 @@ async def execute_analysis_job(
 
 @celery_app.task(name="run_analysis")
 def run_analysis_task(job_id: str, company_domain: str, company_name: str | None = None) -> None:
-    asyncio.run(execute_analysis_job(uuid.UUID(job_id), company_domain, company_name))
+    """Run the async pipeline in a dedicated thread so it always gets a clean
+    event loop — even when Celery is in ALWAYS_EAGER mode and the task is
+    called from within FastAPI's running event loop."""
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(
+            asyncio.run,
+            execute_analysis_job(uuid.UUID(job_id), company_domain, company_name),
+        )
+        future.result()  # block until done (noop overhead in a real worker)

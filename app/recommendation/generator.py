@@ -5,7 +5,7 @@ salesperson can act on. The bullet-point fields (fit_reasons,
 top_buying_signals, top_risks) are built deterministically straight from
 pillar reasons - no LLM involved, so they can never contain an invented
 fact. Only the prose fields (executive_summary, suggested_approach) use
-Gemini, and only when ENABLE_LIVE_LLM + GEMINI_API_KEY are set; otherwise a
+Claude (Anthropic), and only when ENABLE_LIVE_LLM + ANTHROPIC_API_KEY are set; otherwise a
 deterministic template covers the same ground.
 
 `solution_match` ("best OxiQ offering") is left unset - it requires a
@@ -94,7 +94,7 @@ class RecommendationGenerator:
         fit_reasons: list[str],
         top_risks: list[str],
     ) -> tuple[str, str]:
-        if self.settings.enable_live_llm and self.settings.gemini_api_key:
+        if self.settings.enable_live_llm and self.settings.anthropic_api_key:
             try:
                 return await self._generate_prose_live(company_domain, purchase_result, fit_reasons, top_risks)
             except Exception as exc:  # noqa: BLE001
@@ -146,19 +146,10 @@ class RecommendationGenerator:
         fit_reasons: list[str],
         top_risks: list[str],
     ) -> tuple[str, str]:
-        import google.generativeai as genai
+        import anthropic
 
         settings = get_settings()
-        genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel(
-            model_name=settings.gemini_model,
-            system_instruction=(
-                "You write a short, grounded sales brief from the structured facts you're given. "
-                "Only reference the fit reasons and risks provided - never invent a fact, statistic, "
-                "or claim that isn't in the input. Return exactly two lines: "
-                "'SUMMARY: <2-3 sentences>' then 'APPROACH: <1-2 sentences>'."
-            ),
-        )
+        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         prompt = (
             f"Company: {company_domain}\n"
             f"Purchase score: {purchase_result.purchase_score}/100 "
@@ -166,8 +157,18 @@ class RecommendationGenerator:
             f"Fit reasons: {fit_reasons}\n"
             f"Risks: {top_risks}\n"
         )
-        response = model.generate_content(prompt)
-        text = response.text.strip()
+        message = client.messages.create(
+            model=settings.anthropic_model,
+            max_tokens=512,
+            system=(
+                "You write a short, grounded sales brief from the structured facts you're given. "
+                "Only reference the fit reasons and risks provided - never invent a fact, statistic, "
+                "or claim that isn't in the input. Return exactly two lines: "
+                "'SUMMARY: <2-3 sentences>' then 'APPROACH: <1-2 sentences>'."
+            ),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = message.content[0].text.strip()
 
         summary, approach = "", ""
         for line in text.splitlines():

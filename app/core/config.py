@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     celery_broker_url: str = Field(default="redis://localhost:6379/1")
     celery_result_backend: str = Field(default="redis://localhost:6379/2")
 
-    gemini_api_key: str | None = None
-    gemini_model: str = Field(default="gemini-1.5-pro")
+    anthropic_api_key: str | None = None
+    anthropic_model: str = Field(default="claude-sonnet-4-5")
 
     tavily_api_key: str | None = None
     google_news_rss_base: str = Field(default="https://news.google.com/rss/search")
@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     enable_live_crawl: bool = False
     enable_live_tech_detection: bool = False
     enable_live_llm: bool = False
+
+    # Dev-only: run Celery tasks eagerly (inline) without a broker/worker.
+    # Set CELERY_TASK_ALWAYS_EAGER=true in .env to use without Redis.
+    celery_task_always_eager: bool = False
 
 
 @lru_cache

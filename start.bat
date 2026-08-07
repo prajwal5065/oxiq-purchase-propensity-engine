@@ -1,0 +1,3 @@
+@echo off
+echo Starting OxiQ Backend on http://localhost:8000 ...
+C:\Users\admin\AppData\Local\Programs\Python\Python311\python.exe -m uvicorn app.main:app --reload

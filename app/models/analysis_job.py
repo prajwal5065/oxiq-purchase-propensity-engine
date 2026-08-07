@@ -5,8 +5,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -22,14 +21,14 @@ class JobStatus(StrEnum):
 class AnalysisJob(Base):
     __tablename__ = "analysis_jobs"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_domain: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     company_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[JobStatus] = mapped_column(
         Enum(JobStatus), nullable=False, default=JobStatus.PENDING, index=True
     )
     company_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="SET NULL"), nullable=True
+        Uuid(as_uuid=True), ForeignKey("companies.id", ondelete="SET NULL"), nullable=True
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 

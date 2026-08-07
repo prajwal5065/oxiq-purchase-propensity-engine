@@ -4,7 +4,7 @@ Turns raw collector signals into grounded EvidenceItems. The LLM is
 instructed - and the schema enforces - that it must never invent a fact:
 every EvidenceItem requires a verbatim-derived excerpt, its source, and a
 confidence score. Runs in stub mode (returns []) when ENABLE_LIVE_LLM is
-off or GEMINI_API_KEY is unset.
+off or ANTHROPIC_API_KEY is unset.
 """
 import json
 
@@ -40,7 +40,7 @@ class EvidenceExtractor:
         self.settings = get_settings()
 
     async def extract(self, company_domain: str, raw_signals: list[RawSignal]) -> EvidenceBatch:
-        if not self.settings.enable_live_llm or not self.settings.gemini_api_key:
+        if not self.settings.enable_live_llm or not self.settings.anthropic_api_key:
             logger.info("evidence_extractor.stub_mode", domain=company_domain)
             return EvidenceBatch(company_domain=company_domain, items=[])
 
@@ -48,20 +48,27 @@ class EvidenceExtractor:
             return EvidenceBatch(company_domain=company_domain, items=[])
 
         try:
-            import google.generativeai as genai
+            import anthropic
 
-            genai.configure(api_key=self.settings.gemini_api_key)
-            model = genai.GenerativeModel(
-                model_name=self.settings.gemini_model,
-                system_instruction=EXTRACTION_SYSTEM_PROMPT,
-            )
+            client = anthropic.Anthropic(api_key=self.settings.anthropic_api_key)
 
             signals_payload = [s.model_dump() for s in raw_signals]
-            response = model.generate_content(
-                f"Company domain: {company_domain}\n\nRaw signals:\n"
-                f"{json.dumps(signals_payload, default=str)}"
+            message = client.messages.create(
+                model=self.settings.anthropic_model,
+                max_tokens=4096,
+                system=EXTRACTION_SYSTEM_PROMPT,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Company domain: {company_domain}\n\nRaw signals:\n"
+                            f"{json.dumps(signals_payload, default=str)}"
+                        ),
+                    }
+                ],
             )
-            items = self._parse_response(response.text)
+            response_text = message.content[0].text
+            items = self._parse_response(response_text)
             return EvidenceBatch(company_domain=company_domain, items=items)
         except Exception as exc:  # noqa: BLE001
             logger.error("evidence_extractor.failed", domain=company_domain, error=str(exc))
