@@ -24,6 +24,12 @@ def test_normalizer_falls_back_to_unknown_collector():
     assert normalized[0].collector == "unknown"
 
 
+def test_normalizer_infers_collector_for_github_source():
+    items = [make_item("Open source AI project", "flagship ml repo", source="GitHub")]
+    normalized = EvidenceNormalizer().normalize(raw_signals=[], items=items)
+    assert normalized[0].collector == "github"
+
+
 def test_normalizer_infers_category_from_keywords():
     items = [make_item("Hiring AI Engineers", "we are hiring an AI engineer", source="Careers Page")]
     normalized = EvidenceNormalizer().normalize(raw_signals=[], items=items)
