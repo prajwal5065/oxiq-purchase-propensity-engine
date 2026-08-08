@@ -110,6 +110,7 @@ export interface EvidenceCoverage {
   evidence_items_accepted: number;
   coverage_percentage: number;
   collector_statuses: CollectorStatusReport[];
+  sources_not_implemented: string[];
 }
 
 export interface ConfidenceFactor {
