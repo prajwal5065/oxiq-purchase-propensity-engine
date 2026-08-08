@@ -14,6 +14,7 @@ class SignalSource(StrEnum):
     WEBSITE = "website"
     TECH = "tech"
     NEWS = "news"
+    GITHUB = "github"
 
 
 class Signal(Base):
