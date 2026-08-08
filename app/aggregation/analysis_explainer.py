@@ -35,11 +35,13 @@ class AnalysisExplainer:
         normalized_evidence: list[EvidenceItem],
         coverage_summary: EvidenceCoverageSummary,
         purchase_result: PurchaseScoreResult,
+        sources_not_implemented: list[str] | None = None,
     ) -> AnalysisExplanation:
         coverage = self.coverage_calculator.calculate(
             collector_results=collector_results,
             evidence_items_extracted=evidence_items_extracted,
             evidence_items_accepted=len(normalized_evidence),
+            sources_not_implemented=sources_not_implemented,
         )
         confidence_explanation = self.confidence_engine.explain(
             coverage_summary=coverage_summary,
