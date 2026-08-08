@@ -6,6 +6,12 @@ GET  /company/{id}     - company summary
 GET  /companies        - paginated company list, optional industry filter
 GET  /scores/{id}      - a company's pillar + purchase-propensity scores
 GET  /company/{id}/recommendation - latest recommendation for a company
+GET  /company/{id}/explanation    - evidence coverage, confidence, pillar
+                                     attribution, and disqualification
+                                     reasoning behind a company's score
+GET  /company/{id}/evidence       - full evidence records (source, url,
+                                     date, confidence, collector, category,
+                                     pillar) for the dossier's evidence cards
 """
 import uuid
 
@@ -22,6 +28,8 @@ from app.schemas.api import (
     CompanySummary,
     JobStatusResponse,
 )
+from app.schemas.evidence import EvidenceRecord
+from app.schemas.explanation import AnalysisExplanation
 from app.schemas.recommendation import RecommendationResult
 from app.schemas.score import PillarScore
 from app.tasks.analysis_tasks import run_analysis_task
@@ -125,3 +133,33 @@ async def get_recommendation(
         contact_priority=latest.contact_priority,
         solution_match=latest.solution_match,
     )
+
+
+@router.get("/company/{company_id}/explanation", response_model=AnalysisExplanation)
+async def get_explanation(
+    company_id: uuid.UUID, db: AsyncSession = Depends(get_db)
+) -> AnalysisExplanation:
+    """The evidence-first "why" behind a company's score: coverage,
+    confidence factors, per-pillar attribution, and (when applicable) a
+    structured disqualification explanation - never a bare number."""
+    repo = CompanyRepository(db)
+    company = await repo.get_by_id(company_id)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Company not found")
+    if not company.explanations:
+        raise HTTPException(status_code=404, detail="No analysis explanation generated yet for this company")
+
+    latest = max(company.explanations, key=lambda e: e.created_at)
+    return AnalysisExplanation.model_validate(latest.payload)
+
+
+@router.get("/company/{company_id}/evidence", response_model=list[EvidenceRecord])
+async def get_evidence(company_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> list[EvidenceRecord]:
+    """Full evidence records (source, url, date, confidence, collector,
+    category, pillar, excerpt) - what the frontend's evidence cards render,
+    as opposed to /scores which only carries the flattened reason strings."""
+    repo = CompanyRepository(db)
+    company = await repo.get_by_id(company_id)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return [EvidenceRecord.model_validate(item) for item in company.evidence_items]
