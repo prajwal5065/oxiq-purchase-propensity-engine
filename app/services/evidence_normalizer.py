@@ -22,6 +22,7 @@ from app.schemas.signal import RawSignal
 # Maps a substring that might appear in EvidenceItem.source (as written by
 # the extraction LLM) to the collector that most plausibly produced it.
 _SOURCE_TO_COLLECTOR: list[tuple[str, SignalSource]] = [
+    ("github", SignalSource.GITHUB),
     ("news", SignalSource.NEWS),
     ("press", SignalSource.NEWS),
     ("wappalyzer", SignalSource.TECH),
