@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.analysis_explanation import AnalysisExplanationRecord
 from app.models.company import Company
 from app.models.evidence import Evidence
 from app.models.recommendation import Recommendation
@@ -29,6 +30,7 @@ class CompanyRepository:
                 selectinload(Company.scores),
                 selectinload(Company.evidence_items),
                 selectinload(Company.recommendations),
+                selectinload(Company.explanations),
             )
         )
         result = await self.session.execute(stmt)
@@ -77,6 +79,10 @@ class CompanyRepository:
     async def add_recommendation(self, company: Company, recommendation: Recommendation) -> None:
         recommendation.company_id = company.id
         self.session.add(recommendation)
+
+    async def add_explanation(self, company: Company, explanation: AnalysisExplanationRecord) -> None:
+        explanation.company_id = company.id
+        self.session.add(explanation)
 
     async def commit(self) -> None:
         await self.session.commit()
