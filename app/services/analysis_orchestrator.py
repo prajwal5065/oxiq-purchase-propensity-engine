@@ -1,45 +1,57 @@
 """Analysis Orchestrator - the full pipeline:
 
-    Signal Collection -> Evidence Extraction -> Scoring Agents
+    Signal Collection -> Evidence Extraction -> Evidence Normalization
+    -> Evidence Store -> Signal Aggregator -> Scoring Agents
     -> Rule Engine -> Purchase Aggregator -> Recommendation Generator
 
 Phase 10 (frontend) and richer phase-9 API surface aside, this is now the
-complete flow from the architecture diagram.
+complete flow from the architecture diagram, including the evidence-first
+upgrade (normalize -> store -> aggregate before scoring even starts).
 """
 import asyncio
 
 from app.aggregation.purchase_aggregator import PurchaseAggregator
+from app.aggregation.signal_aggregator import SignalAggregator
 from app.collectors.news_collector import NewsCollector
 from app.collectors.search_collector import SearchCollector
 from app.collectors.tech_collector import TechCollector
 from app.collectors.website_collector import WebsiteCollector
 from app.core.logging import get_logger
 from app.extraction.evidence_extractor import EvidenceExtractor
-from app.models.evidence import Evidence as EvidenceModel
 from app.models.recommendation import Recommendation as RecommendationModel
 from app.models.score import Score as ScoreModel
 from app.models.score import ScoreType
 from app.models.signal import Signal as SignalModel
 from app.recommendation.generator import RecommendationGenerator
 from app.repositories.company_repository import CompanyRepository
+from app.repositories.evidence_repository import EvidenceRepository
+from app.schemas.aggregation import EvidenceCoverageSummary
 from app.schemas.evidence import EvidenceItem
 from app.schemas.recommendation import RecommendationResult
 from app.schemas.score import PillarScore, PurchaseScoreResult
 from app.schemas.signal import CollectorResult, RawSignal
 from app.scoring import ALL_SCORING_AGENTS
+from app.services.evidence_normalizer import EvidenceNormalizer
 
 logger = get_logger(__name__)
 
 
 class AnalysisResult:
-    def __init__(self, purchase_result: PurchaseScoreResult, recommendation: RecommendationResult) -> None:
+    def __init__(
+        self,
+        purchase_result: PurchaseScoreResult,
+        recommendation: RecommendationResult,
+        coverage_summary: EvidenceCoverageSummary,
+    ) -> None:
         self.purchase_result = purchase_result
         self.recommendation = recommendation
+        self.coverage_summary = coverage_summary
 
 
 class AnalysisOrchestrator:
     def __init__(self, company_repository: CompanyRepository) -> None:
         self.repo = company_repository
+        self.evidence_repo = EvidenceRepository(company_repository.session)
         self.collectors = [
             SearchCollector(),
             WebsiteCollector(),
@@ -47,6 +59,8 @@ class AnalysisOrchestrator:
             NewsCollector(),
         ]
         self.extractor = EvidenceExtractor()
+        self.normalizer = EvidenceNormalizer()
+        self.signal_aggregator = SignalAggregator()
         self.aggregator = PurchaseAggregator()
         self.recommender = RecommendationGenerator()
 
@@ -58,9 +72,14 @@ class AnalysisOrchestrator:
         await self.repo.add_signals(company, self._to_signal_models(raw_signals))
 
         evidence_batch = await self.extractor.extract(company_domain, raw_signals)
-        await self.repo.add_evidence(company, self._to_evidence_models(evidence_batch.items))
+        normalized_evidence = self.normalizer.normalize(raw_signals, evidence_batch.items)
+        self.evidence_repo.add_batch(company, normalized_evidence)
 
-        pillar_scores = await self._run_scoring_agents(company_domain, evidence_batch.items)
+        coverage_summary = self.signal_aggregator.aggregate(
+            company_domain=company_domain, evidence=normalized_evidence, collector_results=collector_results
+        )
+
+        pillar_scores = await self._run_scoring_agents(company_domain, normalized_evidence)
         await self.repo.add_scores(company, self._to_score_models(pillar_scores))
 
         purchase_result = self.aggregator.aggregate(
@@ -68,7 +87,7 @@ class AnalysisOrchestrator:
         )
         await self.repo.add_scores(company, [self._to_purchase_score_model(purchase_result)])
 
-        recommendation = await self.recommender.generate(company_domain, purchase_result, evidence_batch.items)
+        recommendation = await self.recommender.generate(company_domain, purchase_result, normalized_evidence)
         await self.repo.add_recommendation(company, self._to_recommendation_model(recommendation))
 
         await self.repo.commit()
@@ -76,11 +95,14 @@ class AnalysisOrchestrator:
             "analysis.completed",
             domain=company_domain,
             signals=len(raw_signals),
-            evidence=len(evidence_batch.items),
+            evidence=len(normalized_evidence),
+            evidence_coverage=coverage_summary.overall_coverage,
             purchase_score=purchase_result.purchase_score,
             disqualified=purchase_result.disqualified,
         )
-        return AnalysisResult(purchase_result=purchase_result, recommendation=recommendation)
+        return AnalysisResult(
+            purchase_result=purchase_result, recommendation=recommendation, coverage_summary=coverage_summary
+        )
 
     async def _run_collectors(self, company_domain: str) -> list[CollectorResult]:
         return await asyncio.gather(*(c.collect(company_domain) for c in self.collectors))
@@ -96,19 +118,6 @@ class AnalysisOrchestrator:
         return [
             SignalModel(source=s.source, category=s.category, payload=s.payload, url=s.url)
             for s in raw_signals
-        ]
-
-    @staticmethod
-    def _to_evidence_models(items: list[EvidenceItem]) -> list[EvidenceModel]:
-        return [
-            EvidenceModel(
-                signal_label=item.signal_label,
-                excerpt=item.excerpt,
-                source=item.source,
-                url=str(item.url) if item.url else None,
-                confidence=item.confidence,
-            )
-            for item in items
         ]
 
     @staticmethod
