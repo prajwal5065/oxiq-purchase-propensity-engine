@@ -8,7 +8,7 @@ from app.collectors.base import BaseCollector
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.models.signal import SignalSource
-from app.schemas.signal import CollectorResult, RawSignal
+from app.schemas.signal import CollectorResult, CollectorStatus, RawSignal
 
 logger = get_logger(__name__)
 
@@ -35,6 +35,7 @@ class WebsiteCollector(BaseCollector):
                 signals=[],
                 is_live=False,
                 errors=["Live crawling disabled (ENABLE_LIVE_CRAWL=false) - ran in stub mode"],
+                status=CollectorStatus.NOT_CONFIGURED,
             )
 
         signals: list[RawSignal] = []
