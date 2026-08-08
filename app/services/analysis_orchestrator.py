@@ -1,25 +1,21 @@
 """Analysis Orchestrator - the full pipeline:
 
-    Signal Collection -> Evidence Extraction -> Evidence Normalization
-    -> Evidence Store -> Signal Aggregator -> Scoring Agents
-    -> Rule Engine -> Purchase Aggregator -> Recommendation Generator
-    -> Analysis Explainer -> Explanation Store
+    Source Discovery -> Signal Collection -> Evidence Extraction
+    -> Evidence Normalization -> Evidence Store -> Signal Aggregator
+    -> Scoring Agents -> Rule Engine -> Purchase Aggregator
+    -> Recommendation Generator -> Analysis Explainer -> Explanation Store
 
-Phase 2 adds the last two steps: every analysis now produces a full,
-persisted explanation (coverage, confidence, pillar attribution,
-disqualification reasoning) alongside the score and recommendation.
+The orchestrator asks the SourceDiscoveryEngine which collectors to run
+rather than hardcoding a list itself - see app/discovery/source_catalog.py
+to add a new source.
 """
 import asyncio
 
 from app.aggregation.analysis_explainer import AnalysisExplainer
 from app.aggregation.purchase_aggregator import PurchaseAggregator
 from app.aggregation.signal_aggregator import SignalAggregator
-from app.collectors.github_collector import GitHubCollector
-from app.collectors.news_collector import NewsCollector
-from app.collectors.search_collector import SearchCollector
-from app.collectors.tech_collector import TechCollector
-from app.collectors.website_collector import WebsiteCollector
 from app.core.logging import get_logger
+from app.discovery.source_discovery_engine import SourceDiscoveryEngine
 from app.extraction.evidence_extractor import EvidenceExtractor
 from app.models.analysis_explanation import AnalysisExplanationRecord
 from app.models.recommendation import Recommendation as RecommendationModel
@@ -59,13 +55,7 @@ class AnalysisOrchestrator:
     def __init__(self, company_repository: CompanyRepository) -> None:
         self.repo = company_repository
         self.evidence_repo = EvidenceRepository(company_repository.session)
-        self.collectors = [
-            SearchCollector(),
-            WebsiteCollector(),
-            TechCollector(),
-            NewsCollector(),
-            GitHubCollector(),
-        ]
+        self.discovery = SourceDiscoveryEngine()
         self.extractor = EvidenceExtractor()
         self.normalizer = EvidenceNormalizer()
         self.signal_aggregator = SignalAggregator()
@@ -76,6 +66,8 @@ class AnalysisOrchestrator:
     async def analyze(self, company_domain: str, company_name: str | None = None) -> AnalysisResult:
         company = await self.repo.get_or_create(domain=company_domain, name=company_name or company_domain)
 
+        discovered_sources = await self.discovery.discover(company_domain)
+        sources_not_implemented = self.discovery.not_implemented_labels(discovered_sources)
         collector_results = await self._run_collectors(company_domain)
         raw_signals = [s for result in collector_results for s in result.signals]
         await self.repo.add_signals(company, self._to_signal_models(raw_signals))
@@ -106,6 +98,7 @@ class AnalysisOrchestrator:
             normalized_evidence=normalized_evidence,
             coverage_summary=coverage_summary,
             purchase_result=purchase_result,
+            sources_not_implemented=sources_not_implemented,
         )
         await self.repo.add_explanation(company, self._to_explanation_model(explanation))
 
@@ -128,7 +121,8 @@ class AnalysisOrchestrator:
         )
 
     async def _run_collectors(self, company_domain: str) -> list[CollectorResult]:
-        return await asyncio.gather(*(c.collect(company_domain) for c in self.collectors))
+        collectors = await self.discovery.collectors_to_run(company_domain)
+        return await asyncio.gather(*(c.collect(company_domain) for c in collectors))
 
     async def _run_scoring_agents(
         self, company_domain: str, evidence: list[EvidenceItem]
