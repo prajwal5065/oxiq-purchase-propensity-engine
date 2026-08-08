@@ -3,6 +3,7 @@ import type {
   AnalyzeJobAccepted,
   CompanyListResponse,
   CompanySummary,
+  DashboardSummary,
   EvidenceRecord,
   JobStatusResponse,
   PillarScore,
@@ -73,6 +74,8 @@ export const api = {
   },
 
   getEvidence: (companyId: string) => request<EvidenceRecord[]>(`/company/${companyId}/evidence`),
+
+  getDashboardSummary: () => request<DashboardSummary>("/dashboard/summary"),
 };
 
 export { ApiError };
