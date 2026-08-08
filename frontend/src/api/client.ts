@@ -1,7 +1,9 @@
 import type {
+  AnalysisExplanation,
   AnalyzeJobAccepted,
   CompanyListResponse,
   CompanySummary,
+  EvidenceRecord,
   JobStatusResponse,
   PillarScore,
   RecommendationResult,
@@ -60,6 +62,17 @@ export const api = {
       throw err;
     }
   },
+
+  getExplanation: async (companyId: string): Promise<AnalysisExplanation | null> => {
+    try {
+      return await request<AnalysisExplanation>(`/company/${companyId}/explanation`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return null;
+      throw err;
+    }
+  },
+
+  getEvidence: (companyId: string) => request<EvidenceRecord[]>(`/company/${companyId}/evidence`),
 };
 
 export { ApiError };
