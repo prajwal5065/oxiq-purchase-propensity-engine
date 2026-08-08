@@ -60,6 +60,22 @@ export function EvidenceCoverageSection({ coverage }: { coverage: EvidenceCovera
           </span>
         </div>
       </div>
+
+      {coverage.sources_not_implemented.length > 0 && (
+        <div className="mt-5 pt-4 border-t border-ink-700">
+          <p className="font-mono text-[10px] uppercase tracking-wide text-paper-faint mb-2">
+            Not yet available
+          </p>
+          <div className="space-y-1">
+            {coverage.sources_not_implemented.map((label) => (
+              <div key={label} className="flex items-center gap-2 text-[13px] text-paper-faint">
+                <span aria-hidden="true">&#10007;</span>
+                {label}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
