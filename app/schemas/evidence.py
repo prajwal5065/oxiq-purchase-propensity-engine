@@ -63,3 +63,23 @@ class EvidenceItem(BaseModel):
 class EvidenceBatch(BaseModel):
     company_domain: str
     items: list[EvidenceItem] = Field(default_factory=list)
+
+
+class EvidenceRecord(BaseModel):
+    """Read schema for a persisted Evidence row - what the frontend's
+    evidence cards render (source, url, date, confidence, collector,
+    category, pillar, excerpt)."""
+
+    id: uuid.UUID
+    signal_label: str
+    excerpt: str
+    source: str
+    url: str | None
+    confidence: float
+    category: str | None
+    collector: str | None
+    pillar: str | None
+    published_at: datetime | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
