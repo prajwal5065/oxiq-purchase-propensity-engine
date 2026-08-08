@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     tavily_api_key: str | None = None
     google_news_rss_base: str = Field(default="https://news.google.com/rss/search")
 
+    github_token: str | None = Field(
+        default=None, description="Optional - raises the unauthenticated 60 req/hr GitHub API rate limit"
+    )
+    github_api_base: str = Field(default="https://api.github.com")
+
     crawl4ai_headless: bool = True
     crawl4ai_timeout_seconds: int = 30
 
@@ -39,6 +44,7 @@ class Settings(BaseSettings):
     enable_live_crawl: bool = False
     enable_live_tech_detection: bool = False
     enable_live_llm: bool = False
+    enable_live_github: bool = False
 
     # Dev-only: run Celery tasks eagerly (inline) without a broker/worker.
     # Set CELERY_TASK_ALWAYS_EAGER=true in .env to use without Redis.
