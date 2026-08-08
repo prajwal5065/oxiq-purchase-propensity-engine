@@ -57,6 +57,11 @@ export interface CompanySummary {
   industry: string | null;
   created_at: string;
   last_processed_at: string | null;
+  purchase_score: number | null;
+  final_decision: "qualified" | "disqualified" | "insufficient_data" | null;
+  disqualification_category: DisqualificationCategory | null;
+  confidence: number | null;
+  coverage_percentage: number | null;
 }
 
 export interface CompanyListResponse {
@@ -182,4 +187,29 @@ export interface EvidenceRecord {
   pillar: string | null;
   published_at: string | null;
   created_at: string;
+}
+
+export interface DecisionCounts {
+  qualified: number;
+  disqualified: number;
+  insufficient_data: number;
+}
+
+export interface DisqualificationCategoryCounts {
+  not_disqualified: number;
+  genuine_negative_evidence: number;
+  insufficient_evidence: number;
+  collection_failure: number;
+  source_unavailable: number;
+}
+
+export interface DashboardSummary {
+  total_companies: number;
+  analyzed_companies: number;
+  by_decision: DecisionCounts;
+  by_disqualification_category: DisqualificationCategoryCounts;
+  avg_confidence: number;
+  avg_coverage: number;
+  avg_purchase_score: number;
+  high_priority_count: number;
 }
