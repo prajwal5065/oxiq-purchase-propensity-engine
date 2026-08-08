@@ -56,3 +56,16 @@ def test_empty_collector_results_gives_zero_coverage_not_error():
     coverage = CoverageCalculator().calculate([], evidence_items_extracted=0, evidence_items_accepted=0)
     assert coverage.sources_discovered == 0
     assert coverage.coverage_percentage == 0.0
+
+
+def test_sources_not_implemented_defaults_to_empty():
+    coverage = CoverageCalculator().calculate([], evidence_items_extracted=0, evidence_items_accepted=0)
+    assert coverage.sources_not_implemented == []
+
+
+def test_sources_not_implemented_passed_through():
+    coverage = CoverageCalculator().calculate(
+        [], evidence_items_extracted=0, evidence_items_accepted=0,
+        sources_not_implemented=["Jobs (Greenhouse / Lever / Workday / LinkedIn Jobs)", "Social Profiles"],
+    )
+    assert len(coverage.sources_not_implemented) == 2
