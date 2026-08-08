@@ -15,6 +15,7 @@ class CoverageCalculator:
         collector_results: list[CollectorResult],
         evidence_items_extracted: int,
         evidence_items_accepted: int,
+        sources_not_implemented: list[str] | None = None,
     ) -> EvidenceCoverage:
         statuses = [self._to_status_report(r) for r in collector_results]
 
@@ -39,6 +40,7 @@ class CoverageCalculator:
             evidence_items_accepted=evidence_items_accepted,
             coverage_percentage=coverage_percentage,
             collector_statuses=statuses,
+            sources_not_implemented=sources_not_implemented or [],
         )
 
     @staticmethod
