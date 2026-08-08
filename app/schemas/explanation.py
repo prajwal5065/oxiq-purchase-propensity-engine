@@ -46,6 +46,10 @@ class EvidenceCoverage(BaseModel):
     evidence_items_accepted: int = Field(..., ge=0, description="Evidence count after normalization/dedup")
     coverage_percentage: float = Field(..., ge=0.0, le=1.0)
     collector_statuses: list[CollectorStatusReport] = Field(default_factory=list)
+    sources_not_implemented: list[str] = Field(
+        default_factory=list,
+        description="Spec-named sources with no collector built yet (e.g. Jobs, Company Data, Social) - visible gaps, not silent ones",
+    )
 
 
 class ConfidenceFactor(BaseModel):
