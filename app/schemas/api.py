@@ -44,6 +44,13 @@ class CompanySummary(BaseModel):
     industry: str | None
     created_at: datetime
     last_processed_at: datetime | None
+    purchase_score: float | None = Field(default=None, description="Latest purchase-propensity score, if analyzed")
+    final_decision: str | None = Field(
+        default=None, description="qualified / disqualified / insufficient_data, if analyzed"
+    )
+    disqualification_category: str | None = None
+    confidence: float | None = Field(default=None, description="Overall confidence from the latest explanation")
+    coverage_percentage: float | None = None
 
     model_config = {"from_attributes": True}
 
