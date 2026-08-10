@@ -25,7 +25,13 @@ class AnalysisJob(Base):
     company_domain: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     company_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[JobStatus] = mapped_column(
-        Enum(JobStatus), nullable=False, default=JobStatus.PENDING, index=True
+        # values_callable ensures SQLAlchemy sends the StrEnum .value ("pending")
+        # to Postgres rather than the member .name ("PENDING"). The Neon enum
+        # was created with lowercase labels by migration 0001_initial.
+        Enum(JobStatus, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=JobStatus.PENDING,
+        index=True,
     )
     company_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("companies.id", ondelete="SET NULL"), nullable=True

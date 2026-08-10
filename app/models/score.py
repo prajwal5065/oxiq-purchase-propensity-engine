@@ -26,7 +26,14 @@ class Score(Base):
     company_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    score_type: Mapped[ScoreType] = mapped_column(Enum(ScoreType), nullable=False, index=True)
+    score_type: Mapped[ScoreType] = mapped_column(
+        # values_callable ensures SQLAlchemy sends the StrEnum .value ("need")
+        # to Postgres rather than the member .name ("NEED"). The Neon enum was
+        # created with lowercase labels by migration 0001_initial.
+        Enum(ScoreType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        index=True,
+    )
     value: Mapped[float] = mapped_column(Float, nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     reasons: Mapped[list] = mapped_column(JSON, nullable=False, default=list)

@@ -16,13 +16,16 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 settings = get_settings()
+# Online mode uses the async driver (postgresql+asyncpg).
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    # Offline mode generates SQL without a live connection; use the sync URL
+    # so that alembic can parse the dialect correctly without asyncpg.
+    url = settings.database_url_sync
     context.configure(url=url, target_metadata=target_metadata, literal_binds=True)
     with context.begin_transaction():
         context.run_migrations()

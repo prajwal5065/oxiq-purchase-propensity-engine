@@ -24,7 +24,14 @@ class Signal(Base):
     company_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    source: Mapped[SignalSource] = mapped_column(Enum(SignalSource), nullable=False, index=True)
+    source: Mapped[SignalSource] = mapped_column(
+        # values_callable ensures SQLAlchemy sends the StrEnum .value ("search")
+        # to Postgres rather than the member .name ("SEARCH"). The Neon enum was
+        # created with lowercase labels by migration 0001_initial.
+        Enum(SignalSource, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        index=True,
+    )
     category: Mapped[str] = mapped_column(String(100), nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
