@@ -31,6 +31,9 @@ class Company(Base):
     recommendations: Mapped[list["Recommendation"]] = relationship(
         back_populates="company", cascade="all, delete-orphan"
     )
+    explanations: Mapped[list["AnalysisExplanationRecord"]] = relationship(
+        back_populates="company", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Company id={self.id} domain={self.domain!r}>"

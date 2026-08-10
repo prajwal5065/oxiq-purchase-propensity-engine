@@ -1,10 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import { formatRelativeDate } from "../lib/format";
+import { DecisionBadge } from "./DecisionBadge";
+import { formatRelativeDate, formatScore } from "../lib/format";
 import type { CompanySummary } from "../types";
 
 const PAGE_SIZE = 10;
+
+type DecisionFilter = "all" | "qualified" | "insufficient_data" | "disqualified";
+
+const FILTERS: { value: DecisionFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "qualified", label: "Qualified" },
+  { value: "insufficient_data", label: "Insufficient data" },
+  { value: "disqualified", label: "Disqualified" },
+];
 
 export function CompanyList() {
   const [items, setItems] = useState<CompanySummary[]>([]);
@@ -12,6 +22,7 @@ export function CompanyList() {
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<DecisionFilter>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -31,6 +42,11 @@ export function CompanyList() {
     };
   }, [offset]);
 
+  const filteredItems = useMemo(
+    () => (filter === "all" ? items : items.filter((c) => c.final_decision === filter)),
+    [items, filter]
+  );
+
   if (error) {
     return <p className="font-mono text-xs text-rose">{error}</p>;
   }
@@ -48,15 +64,32 @@ export function CompanyList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <h2 className="font-mono text-[10px] uppercase tracking-widest text-paper-faint">
           Dossier index
         </h2>
-        <span className="font-mono text-[10px] text-paper-faint">{total} on file</span>
+        <div className="flex items-center gap-4">
+          <div className="flex gap-1">
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                className={`font-mono text-[10px] uppercase tracking-wide px-2 py-1 rounded-sm border transition-colors ${
+                  filter === f.value
+                    ? "border-signal text-signal"
+                    : "border-ink-600 text-paper-faint hover:text-paper-dim"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <span className="font-mono text-[10px] text-paper-faint">{total} on file</span>
+        </div>
       </div>
 
       <ul className="divide-y divide-ink-600 border border-ink-600 rounded-sm">
-        {items.map((company) => (
+        {filteredItems.map((company) => (
           <li key={company.id}>
             <Link
               to={`/company/${company.id}`}
@@ -66,9 +99,15 @@ export function CompanyList() {
                 <p className="text-sm text-paper truncate group-hover:text-signal transition-colors">
                   {company.name}
                 </p>
-                <p className="font-mono text-xs text-paper-faint truncate">{company.domain}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="font-mono text-xs text-paper-faint truncate">{company.domain}</p>
+                  <DecisionBadge decision={company.final_decision} />
+                </div>
               </div>
               <div className="flex items-center gap-4 shrink-0 ml-4">
+                {company.purchase_score !== null && (
+                  <span className="font-mono text-sm text-signal">{formatScore(company.purchase_score)}</span>
+                )}
                 {company.industry && (
                   <span className="font-mono text-[10px] uppercase tracking-wide text-paper-dim hidden sm:block">
                     {company.industry}
@@ -82,6 +121,10 @@ export function CompanyList() {
           </li>
         ))}
       </ul>
+
+      {filteredItems.length === 0 && (
+        <p className="font-mono text-xs text-paper-faint text-center py-6">No companies match this filter.</p>
+      )}
 
       {items.length < total && (
         <button

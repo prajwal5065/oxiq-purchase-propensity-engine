@@ -9,7 +9,7 @@ from app.collectors.base import BaseCollector
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.models.signal import SignalSource
-from app.schemas.signal import CollectorResult, RawSignal
+from app.schemas.signal import CollectorResult, CollectorStatus, RawSignal
 
 logger = get_logger(__name__)
 
@@ -37,6 +37,7 @@ class SearchCollector(BaseCollector):
                 signals=[],
                 is_live=False,
                 errors=["Live search disabled or TAVILY_API_KEY missing - ran in stub mode"],
+                status=CollectorStatus.NOT_CONFIGURED,
             )
 
         signals: list[RawSignal] = []

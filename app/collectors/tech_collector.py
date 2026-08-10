@@ -5,7 +5,7 @@ from app.collectors.base import BaseCollector
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.models.signal import SignalSource
-from app.schemas.signal import CollectorResult, RawSignal
+from app.schemas.signal import CollectorResult, CollectorStatus, RawSignal
 
 logger = get_logger(__name__)
 
@@ -34,6 +34,7 @@ class TechCollector(BaseCollector):
                 signals=[],
                 is_live=False,
                 errors=["Live tech detection disabled (ENABLE_LIVE_TECH_DETECTION=false) - stub mode"],
+                status=CollectorStatus.NOT_CONFIGURED,
             )
 
         signals: list[RawSignal] = []
