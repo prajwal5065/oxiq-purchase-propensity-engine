@@ -17,6 +17,10 @@ KEYWORDS = [
     "microservices",
     "graphql",
     "terraform",
+    "machine learning",
+    "artificial intelligence",
+    "generative ai",
+    "cloud-native",
 ]
 
 MAX_EXPECTED_SIGNALS = 5

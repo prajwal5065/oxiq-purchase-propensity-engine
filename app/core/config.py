@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     crawl4ai_headless: bool = True
     crawl4ai_timeout_seconds: int = 30
 
+    # Company & Technology Intelligence - both providers below are free/
+    # unauthenticated public sources, so no API key setting exists yet. A
+    # future paid provider (Crunchbase, Clearbit, ZoomInfo...) adds its own
+    # optional `*_api_key` setting here without touching the collector.
+    company_profile_timeout_seconds: int = 15
+    wikidata_api_base: str = Field(default="https://www.wikidata.org/w/api.php")
+
     # Feature flags let every collector/agent run in "stub mode" until real
     # credentials are supplied, per the current no-live-API-calls workflow.
     enable_live_search: bool = False
@@ -45,6 +52,7 @@ class Settings(BaseSettings):
     enable_live_tech_detection: bool = False
     enable_live_llm: bool = False
     enable_live_github: bool = False
+    enable_live_company_profile: bool = False
 
     # Dev-only: run Celery tasks eagerly (inline) without a broker/worker.
     # Set CELERY_TASK_ALWAYS_EAGER=true in .env to use without Redis.

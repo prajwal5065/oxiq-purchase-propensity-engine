@@ -8,6 +8,7 @@ const SOURCE_LABELS: Record<string, string> = {
   tech: "Technology",
   news: "News",
   github: "GitHub",
+  company_profile: "Company Profile",
 };
 
 export function EvidenceCoverageSection({ coverage }: { coverage: EvidenceCoverage }) {

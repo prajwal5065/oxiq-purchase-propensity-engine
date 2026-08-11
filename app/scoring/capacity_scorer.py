@@ -25,7 +25,11 @@ from app.schemas.score import PillarScore
 KEYWORDS = [
     "employees",
     "headcount",
+    "employee count",
+    "company size",
     "team of",
+    "industry",
+    "headquartered",
     "revenue",
     "annual recurring revenue",
     "arr",

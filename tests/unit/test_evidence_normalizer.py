@@ -30,10 +30,28 @@ def test_normalizer_infers_collector_for_github_source():
     assert normalized[0].collector == "github"
 
 
+def test_normalizer_infers_collector_for_wikidata_source():
+    items = [make_item("Industry", "operates in the software industry", source="Wikidata")]
+    normalized = EvidenceNormalizer().normalize(raw_signals=[], items=items)
+    assert normalized[0].collector == "company_profile"
+
+
+def test_normalizer_infers_collector_for_company_profile_source():
+    items = [make_item("Employee count", "reports 500 employees", source="Company Profile")]
+    normalized = EvidenceNormalizer().normalize(raw_signals=[], items=items)
+    assert normalized[0].collector == "company_profile"
+
+
 def test_normalizer_infers_category_from_keywords():
     items = [make_item("Hiring AI Engineers", "we are hiring an AI engineer", source="Careers Page")]
     normalized = EvidenceNormalizer().normalize(raw_signals=[], items=items)
     assert normalized[0].category == "hiring"
+
+
+def test_normalizer_infers_company_profile_category():
+    items = [make_item("Industry", "the company is headquartered in Austin", source="Wikidata")]
+    normalized = EvidenceNormalizer().normalize(raw_signals=[], items=items)
+    assert normalized[0].category == "company_profile"
 
 
 def test_normalizer_falls_back_to_general_category():
