@@ -1,5 +1,6 @@
 import pytest
 
+from app.collectors.company_profile_collector import CompanyProfileCollector
 from app.collectors.github_collector import GitHubCollector
 from app.collectors.search_collector import SearchCollector
 from app.collectors.tech_collector import TechCollector
@@ -32,6 +33,14 @@ async def test_tech_collector_stub_mode_by_default():
 @pytest.mark.asyncio
 async def test_github_collector_stub_mode_by_default():
     result = await GitHubCollector().collect("acme.com")
+    assert result.is_live is False
+    assert result.signals == []
+    assert result.resolved_status == CollectorStatus.NOT_CONFIGURED
+
+
+@pytest.mark.asyncio
+async def test_company_profile_collector_stub_mode_by_default():
+    result = await CompanyProfileCollector().collect("acme.com")
     assert result.is_live is False
     assert result.signals == []
     assert result.resolved_status == CollectorStatus.NOT_CONFIGURED

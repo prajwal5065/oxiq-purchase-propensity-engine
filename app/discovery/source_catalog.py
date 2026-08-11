@@ -17,6 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from app.collectors.base import BaseCollector
+from app.collectors.company_profile_collector import CompanyProfileCollector
 from app.collectors.github_collector import GitHubCollector
 from app.collectors.news_collector import NewsCollector
 from app.collectors.search_collector import SearchCollector
@@ -38,7 +39,12 @@ SOURCE_CATALOG: list[SourceCatalogEntry] = [
     SourceCatalogEntry("tech", "Technology Stack", implemented=True, collector_factory=TechCollector),
     SourceCatalogEntry("news", "News", implemented=True, collector_factory=NewsCollector),
     SourceCatalogEntry("github", "GitHub", implemented=True, collector_factory=GitHubCollector),
+    SourceCatalogEntry(
+        "company",
+        "Company & Technology Profile (schema.org / Wikidata)",
+        implemented=True,
+        collector_factory=CompanyProfileCollector,
+    ),
     SourceCatalogEntry("jobs", "Jobs (Greenhouse / Lever / Workday / LinkedIn Jobs)", implemented=False),
-    SourceCatalogEntry("company", "Company Data (Crunchbase / OpenCorporates)", implemented=False),
     SourceCatalogEntry("social", "Social Profiles", implemented=False),
 ]

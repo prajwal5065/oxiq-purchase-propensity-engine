@@ -51,7 +51,7 @@ async def test_full_analysis_persists_a_retrievable_explanation():
             "WHY THIS COMPANY SCORED HIGH",
             "WHY THIS COMPANY SCORED LOW",
         )
-        assert explanation.evidence_coverage.sources_discovered == 5
+        assert explanation.evidence_coverage.sources_discovered == 6
 
         # Decision Intelligence must round-trip through the JSON payload
         # like every other part of the explanation - no separate table,

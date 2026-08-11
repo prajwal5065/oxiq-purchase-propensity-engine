@@ -25,6 +25,11 @@ _SOURCE_TO_COLLECTOR: list[tuple[str, SignalSource]] = [
     ("github", SignalSource.GITHUB),
     ("news", SignalSource.NEWS),
     ("press", SignalSource.NEWS),
+    ("wikidata", SignalSource.COMPANY_PROFILE),
+    ("company profile", SignalSource.COMPANY_PROFILE),
+    ("company registry", SignalSource.COMPANY_PROFILE),
+    ("schema.org", SignalSource.COMPANY_PROFILE),
+    ("organization profile", SignalSource.COMPANY_PROFILE),
     ("wappalyzer", SignalSource.TECH),
     ("tech", SignalSource.TECH),
     ("stack", SignalSource.TECH),
@@ -44,6 +49,13 @@ _SOURCE_TO_COLLECTOR: list[tuple[str, SignalSource]] = [
 _CATEGORY_KEYWORDS: list[tuple[str, list[str]]] = [
     ("funding", ["funding", "raised", "series a", "series b", "series c", "valuation", "investor"]),
     ("hiring", ["hiring", "engineer", "recruiting", "job opening", "headcount", "we're hiring"]),
+    (
+        "company_profile",
+        [
+            "industry", "sector", "employee count", "company size", "founded in",
+            "founding date", "headquartered", "naics", "sic code", "organization type",
+        ],
+    ),
     ("expansion", ["office", "expansion", "new market", "opening in", "expanding"]),
     ("executive", ["ceo", "cto", "cfo", "chief", "appointed", "executive", "leadership"]),
     ("technology", ["aws", "azure", "cloud", "api", "stack", "software", "platform", "automation"]),
