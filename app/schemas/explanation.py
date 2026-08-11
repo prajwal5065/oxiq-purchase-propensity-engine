@@ -14,6 +14,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.models.score import ScoreType
+from app.schemas.decision import DecisionIntelligence
 from app.schemas.signal import CollectorStatus
 
 
@@ -126,4 +127,5 @@ class AnalysisExplanation(BaseModel):
     confidence_explanation: ConfidenceExplanation
     pillar_explanations: list[PillarExplanation] = Field(default_factory=list)
     disqualification: DisqualificationExplanation
+    decision_intelligence: DecisionIntelligence
     generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

@@ -7,10 +7,11 @@ focused engines below. Kept as a thin composition layer on purpose - each
 engine is independently testable, this just wires them together and picks
 the headline.
 """
-from app.aggregation.coverage_calculator import CoverageCalculator
 from app.aggregation.confidence_engine import ConfidenceEngine
+from app.aggregation.coverage_calculator import CoverageCalculator
 from app.aggregation.disqualification_engine import DisqualificationEngine
 from app.aggregation.pillar_explainer import PillarExplainer
+from app.decision.decision_intelligence_engine import DecisionIntelligenceEngine
 from app.schemas.aggregation import EvidenceCoverageSummary
 from app.schemas.evidence import EvidenceItem
 from app.schemas.explanation import AnalysisExplanation
@@ -26,6 +27,7 @@ class AnalysisExplainer:
         self.confidence_engine = ConfidenceEngine()
         self.pillar_explainer = PillarExplainer()
         self.disqualification_engine = DisqualificationEngine()
+        self.decision_intelligence_engine = DecisionIntelligenceEngine()
 
     def explain(
         self,
@@ -54,6 +56,14 @@ class AnalysisExplainer:
         disqualification = self.disqualification_engine.explain(
             purchase_result=purchase_result, coverage=coverage, pillar_explanations=pillar_explanations
         )
+        decision_intelligence = self.decision_intelligence_engine.build(
+            evidence=normalized_evidence,
+            coverage=coverage,
+            purchase_result=purchase_result,
+            disqualification=disqualification,
+            pillar_explanations=pillar_explanations,
+            overall_confidence=confidence_explanation.overall_confidence,
+        )
 
         return AnalysisExplanation(
             company_domain=company_domain,
@@ -62,6 +72,7 @@ class AnalysisExplainer:
             confidence_explanation=confidence_explanation,
             pillar_explanations=pillar_explanations,
             disqualification=disqualification,
+            decision_intelligence=decision_intelligence,
         )
 
     @staticmethod
