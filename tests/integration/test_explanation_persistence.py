@@ -52,3 +52,11 @@ async def test_full_analysis_persists_a_retrievable_explanation():
             "WHY THIS COMPANY SCORED LOW",
         )
         assert explanation.evidence_coverage.sources_discovered == 5
+
+        # Decision Intelligence must round-trip through the JSON payload
+        # like every other part of the explanation - no separate table,
+        # no data lost on the way in or out.
+        assert explanation.decision_intelligence is not None
+        if explanation.disqualification.final_decision == "insufficient_data":
+            assert explanation.decision_intelligence.recommendation.priority.value == "insufficient_data"
+            assert explanation.decision_intelligence.recommendation.decision_score is None
