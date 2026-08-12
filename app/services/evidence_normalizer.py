@@ -35,6 +35,12 @@ _SOURCE_TO_COLLECTOR: list[tuple[str, SignalSource]] = [
     ("stack", SignalSource.TECH),
     ("search", SignalSource.SEARCH),
     ("google", SignalSource.SEARCH),
+    ("greenhouse", SignalSource.JOBS),
+    ("lever", SignalSource.JOBS),
+    ("job board", SignalSource.JOBS),
+    ("jobs board", SignalSource.JOBS),
+    ("job posting", SignalSource.JOBS),
+    ("job listing", SignalSource.JOBS),
     ("career", SignalSource.WEBSITE),
     ("job", SignalSource.WEBSITE),
     ("website", SignalSource.WEBSITE),
@@ -64,16 +70,39 @@ _CATEGORY_KEYWORDS: list[tuple[str, list[str]]] = [
 
 DEFAULT_CATEGORY = "general"
 
+# Category values the Jobs Collector itself assigns per-posting (see
+# app/collectors/jobs_collector.py) - these ride on the RawSignal, not
+# guessed from LLM-paraphrased excerpt text, so when a normalized item's
+# URL matches the RawSignal that produced it, we trust that tag over the
+# generic keyword heuristic below. Scoped to exactly these values (rather
+# than trusting any RawSignal.category) so this can never silently change
+# categorization for every other collector's evidence.
+_JOBS_SUBTYPE_CATEGORIES = {
+    "ai_ml_hiring",
+    "engineering_hiring",
+    "data_hiring",
+    "cloud_devops_hiring",
+    "security_hiring",
+    "general_hiring",
+}
+
 
 class EvidenceNormalizer:
     def normalize(self, raw_signals: list[RawSignal], items: list[EvidenceItem]) -> list[EvidenceItem]:
         """Return a deduplicated, collector/category-tagged copy of `items`.
 
-        `raw_signals` is accepted for future use (e.g. matching evidence
-        back to a specific RawSignal by URL) but the current heuristic only
-        needs the EvidenceItem's own `source` string and text.
+        `raw_signals` is used to recover the Jobs Collector's own hiring-
+        category tag (by matching each item's URL back to the RawSignal
+        that produced it) before falling back to keyword inference - see
+        `_JOBS_SUBTYPE_CATEGORIES` above. For every other source this is a
+        no-op: no RawSignal from another collector ever carries one of
+        those category values.
         """
-        del raw_signals  # not yet used for matching; kept in the signature for future URL-based matching
+        url_to_jobs_category = {
+            signal.url: signal.category
+            for signal in raw_signals
+            if signal.url and signal.category in _JOBS_SUBTYPE_CATEGORIES
+        }
 
         seen: set[tuple[str, str]] = set()
         normalized: list[EvidenceItem] = []
@@ -84,10 +113,13 @@ class EvidenceNormalizer:
                 continue
             seen.add(dedupe_key)
 
+            inherited_category = url_to_jobs_category.get(str(item.url)) if item.url else None
             enriched = item.model_copy(
                 update={
                     "collector": item.collector or self._infer_collector(item.source),
-                    "category": item.category or self._infer_category(item.signal_label, item.excerpt),
+                    "category": item.category
+                    or inherited_category
+                    or self._infer_category(item.signal_label, item.excerpt),
                 }
             )
             normalized.append(enriched)

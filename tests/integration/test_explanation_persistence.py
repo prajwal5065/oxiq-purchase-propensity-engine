@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-import app.models
 from app.db.session import Base
 from app.models.analysis_job import JobStatus
 from app.repositories.company_repository import CompanyRepository
@@ -51,7 +50,7 @@ async def test_full_analysis_persists_a_retrievable_explanation():
             "WHY THIS COMPANY SCORED HIGH",
             "WHY THIS COMPANY SCORED LOW",
         )
-        assert explanation.evidence_coverage.sources_discovered == 6
+        assert explanation.evidence_coverage.sources_discovered == 7
 
         # Decision Intelligence must round-trip through the JSON payload
         # like every other part of the explanation - no separate table,

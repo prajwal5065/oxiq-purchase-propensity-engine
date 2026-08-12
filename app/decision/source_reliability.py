@@ -44,6 +44,10 @@ _COLLECTOR_TIERS: dict[str, tuple[ReliabilityTier, str]] = {
         ReliabilityTier.MEDIUM,
         "Scraped page content, then LLM-extracted - generally reliable but subject to extraction error.",
     ),
+    "jobs": (
+        ReliabilityTier.HIGH,
+        "Structured ATS API data (Greenhouse/Lever job postings) - directly observed, not inferred from prose.",
+    ),
     "news": (
         ReliabilityTier.MEDIUM,
         "Third-party reporting, LLM-extracted - accuracy depends on the publication and the extractor.",
