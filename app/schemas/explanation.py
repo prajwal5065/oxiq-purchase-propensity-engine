@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from app.models.score import ScoreType
 from app.schemas.decision import DecisionIntelligence
+from app.schemas.sales import SalesIntelligence
 from app.schemas.signal import CollectorStatus
 
 
@@ -128,4 +129,11 @@ class AnalysisExplanation(BaseModel):
     pillar_explanations: list[PillarExplanation] = Field(default_factory=list)
     disqualification: DisqualificationExplanation
     decision_intelligence: DecisionIntelligence
+    sales_intelligence: SalesIntelligence | None = Field(
+        default=None,
+        description=(
+            "Sales-action-oriented layer derived from Decision Intelligence. "
+            "None when the analysis predates this feature or ran in stub mode."
+        ),
+    )
     generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

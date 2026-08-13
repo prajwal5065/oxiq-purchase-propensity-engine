@@ -52,13 +52,12 @@ def _enable_live_company_profile(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_stub_mode_returns_not_configured_when_flag_off(monkeypatch):
-    get_settings.cache_clear()
-    monkeypatch.delenv("ENABLE_LIVE_COMPANY_PROFILE", raising=False)
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_live_company_profile", False)
     result = await CompanyProfileCollector().collect("acme.com")
     assert result.is_live is False
     assert result.signals == []
     assert result.resolved_status == CollectorStatus.NOT_CONFIGURED
-    get_settings.cache_clear()
 
 
 @pytest.mark.asyncio
