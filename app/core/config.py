@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     # optional `*_api_key` setting here without touching the collector.
     company_profile_timeout_seconds: int = 15
     wikidata_api_base: str = Field(default="https://www.wikidata.org/w/api.php")
+    
+    builtwith_api_key: str | None = None
 
     # Jobs (Greenhouse / Lever) - both are free, unauthenticated public
     # job-board APIs; no key setting exists for the same reason as above.
