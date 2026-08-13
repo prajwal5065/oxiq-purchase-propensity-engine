@@ -35,6 +35,7 @@ from app.schemas.dashboard import DashboardSummary
 from app.schemas.evidence import EvidenceRecord
 from app.schemas.explanation import AnalysisExplanation
 from app.schemas.recommendation import RecommendationResult
+from app.schemas.sales import SalesIntelligence
 from app.schemas.score import PillarScore
 from app.tasks.analysis_tasks import run_analysis_task
 
@@ -211,3 +212,28 @@ async def get_evidence(company_id: uuid.UUID, db: AsyncSession = Depends(get_db)
     if company is None:
         raise HTTPException(status_code=404, detail="Company not found")
     return [EvidenceRecord.model_validate(item) for item in company.evidence_items]
+
+
+@router.get("/company/{company_id}/sales", response_model=SalesIntelligence)
+async def get_sales_intelligence(
+    company_id: uuid.UUID, db: AsyncSession = Depends(get_db)
+) -> SalesIntelligence:
+    """Sales Intelligence for a company: opportunity, solution fit, stakeholder
+    roles, sales trigger, risks, and recommended next action — all derived from
+    the persisted Decision Intelligence explanation, no new computation."""
+    repo = CompanyRepository(db)
+    company = await repo.get_by_id(company_id)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Company not found")
+    if not company.explanations:
+        raise HTTPException(status_code=404, detail="No analysis explanation generated yet for this company")
+
+    latest = max(company.explanations, key=lambda e: e.created_at)
+    payload = latest.payload
+    sales_payload = payload.get("sales_intelligence")
+    if sales_payload is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Sales Intelligence not available for this analysis run (analysis may predate this feature)",
+        )
+    return SalesIntelligence.model_validate(sales_payload)

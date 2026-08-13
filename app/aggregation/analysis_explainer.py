@@ -12,6 +12,7 @@ from app.aggregation.coverage_calculator import CoverageCalculator
 from app.aggregation.disqualification_engine import DisqualificationEngine
 from app.aggregation.pillar_explainer import PillarExplainer
 from app.decision.decision_intelligence_engine import DecisionIntelligenceEngine
+from app.decision.sales_intelligence_engine import SalesIntelligenceEngine
 from app.schemas.aggregation import EvidenceCoverageSummary
 from app.schemas.evidence import EvidenceItem
 from app.schemas.explanation import AnalysisExplanation
@@ -28,6 +29,7 @@ class AnalysisExplainer:
         self.pillar_explainer = PillarExplainer()
         self.disqualification_engine = DisqualificationEngine()
         self.decision_intelligence_engine = DecisionIntelligenceEngine()
+        self.sales_intelligence_engine = SalesIntelligenceEngine()
 
     def explain(
         self,
@@ -64,6 +66,12 @@ class AnalysisExplainer:
             pillar_explanations=pillar_explanations,
             overall_confidence=confidence_explanation.overall_confidence,
         )
+        sales_intelligence = self.sales_intelligence_engine.build(
+            evidence=normalized_evidence,
+            decision_intelligence=decision_intelligence,
+            purchase_result=purchase_result,
+            disqualification=disqualification,
+        )
 
         return AnalysisExplanation(
             company_domain=company_domain,
@@ -73,6 +81,7 @@ class AnalysisExplainer:
             pillar_explanations=pillar_explanations,
             disqualification=disqualification,
             decision_intelligence=decision_intelligence,
+            sales_intelligence=sales_intelligence,
         )
 
     @staticmethod

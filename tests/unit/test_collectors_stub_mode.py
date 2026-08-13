@@ -7,8 +7,17 @@ from app.collectors.search_collector import SearchCollector
 from app.collectors.tech_collector import TechCollector
 from app.collectors.website_collector import WebsiteCollector
 from app.schemas.signal import CollectorStatus
+from app.core.config import get_settings
 
 
+@pytest.fixture(autouse=True)
+def mock_stub_settings(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_live_search", False)
+    monkeypatch.setattr(settings, "enable_live_crawl", False)
+    monkeypatch.setattr(settings, "enable_live_tech_detection", False)
+    monkeypatch.setattr(settings, "enable_live_github", False)
+    monkeypatch.setattr(settings, "enable_live_company_profile", False)
 @pytest.mark.asyncio
 async def test_search_collector_stub_mode_without_key():
     result = await SearchCollector().collect("acme.com")
