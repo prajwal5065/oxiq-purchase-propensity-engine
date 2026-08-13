@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Enum, ForeignKey, JSON, String, Uuid, func
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -16,6 +16,7 @@ class SignalSource(StrEnum):
     NEWS = "news"
     GITHUB = "github"
     COMPANY_PROFILE = "company_profile"
+    JOBS = "jobs"
 
 
 class Signal(Base):

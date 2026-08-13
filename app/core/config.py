@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     company_profile_timeout_seconds: int = 15
     wikidata_api_base: str = Field(default="https://www.wikidata.org/w/api.php")
 
+    # Jobs (Greenhouse / Lever) - both are free, unauthenticated public
+    # job-board APIs; no key setting exists for the same reason as above.
+    jobs_timeout_seconds: int = 15
+    greenhouse_api_base: str = Field(default="https://boards-api.greenhouse.io/v1/boards")
+    lever_api_base: str = Field(default="https://api.lever.co/v0/postings")
+
     # Feature flags let every collector/agent run in "stub mode" until real
     # credentials are supplied, per the current no-live-API-calls workflow.
     enable_live_search: bool = False
@@ -53,6 +59,7 @@ class Settings(BaseSettings):
     enable_live_llm: bool = False
     enable_live_github: bool = False
     enable_live_company_profile: bool = False
+    enable_live_jobs: bool = False
 
     # Dev-only: run Celery tasks eagerly (inline) without a broker/worker.
     # Set CELERY_TASK_ALWAYS_EAGER=true in .env to use without Redis.

@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 EXTRACTION_SYSTEM_PROMPT = """You are an evidence extraction engine. You will be given raw text \
 signals collected about a company from the public web (search results, website pages, tech \
-detection, news).
+detection, news, job postings).
 
 Rules you MUST follow:
 1. Only extract facts that are explicitly stated in the provided text. NEVER infer, guess, or \

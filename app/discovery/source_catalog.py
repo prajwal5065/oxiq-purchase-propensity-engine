@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from app.collectors.base import BaseCollector
 from app.collectors.company_profile_collector import CompanyProfileCollector
 from app.collectors.github_collector import GitHubCollector
+from app.collectors.jobs_collector import JobsCollector
 from app.collectors.news_collector import NewsCollector
 from app.collectors.search_collector import SearchCollector
 from app.collectors.tech_collector import TechCollector
@@ -45,6 +46,8 @@ SOURCE_CATALOG: list[SourceCatalogEntry] = [
         implemented=True,
         collector_factory=CompanyProfileCollector,
     ),
-    SourceCatalogEntry("jobs", "Jobs (Greenhouse / Lever / Workday / LinkedIn Jobs)", implemented=False),
+    SourceCatalogEntry(
+        "jobs", "Jobs (Greenhouse / Lever)", implemented=True, collector_factory=JobsCollector
+    ),
     SourceCatalogEntry("social", "Social Profiles", implemented=False),
 ]
