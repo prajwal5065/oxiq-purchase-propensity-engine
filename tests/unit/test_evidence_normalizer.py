@@ -151,3 +151,181 @@ def test_normalizer_keeps_existing_category_and_collector_if_already_set():
     normalized = EvidenceNormalizer().normalize(raw_signals=[], items=[item])
     assert normalized[0].category == "funding"
     assert normalized[0].collector == "search"
+
+
+# --- Structured Technology/Jobs field enrichment ---------------------------
+
+
+def test_normalizer_attaches_technology_fields_via_url_match():
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.TECH,
+            category="javascript",
+            payload={"technology": "React", "provider": "builtwith"},
+            url="https://acme.com/#tech-React",
+        )
+    ]
+    items = [
+        make_item("Uses React", "The site is built with React", source="BuiltWith").model_copy(
+            update={"url": "https://acme.com/#tech-React"}
+        )
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    assert normalized[0].technology_name == "React"
+    assert normalized[0].technology_provider == "builtwith"
+
+
+def test_normalizer_attaches_wappalyzer_technology_fields():
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.TECH,
+            category="Analytics",
+            payload={"technology": "Google Analytics", "provider": "wappalyzer"},
+            url="https://acme.com/#tech-Google%20Analytics",
+        )
+    ]
+    items = [
+        make_item("Uses Google Analytics", "Tracking via Google Analytics", source="Wappalyzer").model_copy(
+            update={"url": "https://acme.com/#tech-Google%20Analytics"}
+        )
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    assert normalized[0].technology_name == "Google Analytics"
+    assert normalized[0].technology_provider == "wappalyzer"
+
+
+def test_normalizer_leaves_technology_fields_null_when_no_url_match():
+    items = [make_item("Uses React", "The site is built with React", source="BuiltWith")]
+    normalized = EvidenceNormalizer().normalize(raw_signals=[], items=items)
+    assert normalized[0].technology_name is None
+    assert normalized[0].technology_provider is None
+
+
+def test_normalizer_does_not_attach_technology_fields_from_unrelated_source():
+    """A GitHub RawSignal must never leak technology_name/provider onto
+    unrelated evidence, even if URLs happened to collide."""
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.GITHUB,
+            category="repo",
+            payload={"stars": 100},
+            url="https://acme.com/#tech-React",
+        )
+    ]
+    items = [
+        make_item("Uses React", "built with React", source="BuiltWith").model_copy(
+            update={"url": "https://acme.com/#tech-React"}
+        )
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    assert normalized[0].technology_name is None
+    assert normalized[0].technology_provider is None
+
+
+def test_normalizer_attaches_job_fields_via_url_match():
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.JOBS,
+            category="ai_ml_hiring",
+            payload={
+                "title": "Machine Learning Engineer",
+                "department": "Engineering",
+                "location": "Remote",
+                "posted_at": "2026-08-01T00:00:00+00:00",
+                "provider": "greenhouse",
+                "description_snippet": "Join our ML team...",
+            },
+            url="https://boards.greenhouse.io/acme/jobs/1",
+        )
+    ]
+    items = [
+        make_item(
+            "Hiring ML Engineer", "Acme is hiring a Machine Learning Engineer", source="Greenhouse"
+        ).model_copy(update={"url": "https://boards.greenhouse.io/acme/jobs/1"})
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    assert normalized[0].job_title == "Machine Learning Engineer"
+    assert normalized[0].job_department == "Engineering"
+    assert normalized[0].job_location == "Remote"
+    assert normalized[0].job_ats_provider == "greenhouse"
+    assert normalized[0].job_posting_date is not None
+    assert normalized[0].job_posting_date.year == 2026
+
+
+def test_normalizer_attaches_lever_job_fields():
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.JOBS,
+            category="engineering_hiring",
+            payload={
+                "title": "Staff Engineer",
+                "department": "Platform",
+                "location": "New York",
+                "posted_at": None,
+                "provider": "lever",
+                "description_snippet": "...",
+            },
+            url="https://jobs.lever.co/acme/2",
+        )
+    ]
+    items = [
+        make_item("Hiring Staff Engineer", "Acme is hiring a Staff Engineer", source="Lever Job Board").model_copy(
+            update={"url": "https://jobs.lever.co/acme/2"}
+        )
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    assert normalized[0].job_title == "Staff Engineer"
+    assert normalized[0].job_department == "Platform"
+    assert normalized[0].job_location == "New York"
+    assert normalized[0].job_ats_provider == "lever"
+    assert normalized[0].job_posting_date is None
+
+
+def test_normalizer_leaves_job_fields_null_when_no_url_match():
+    items = [make_item("Hiring", "open posting", source="Greenhouse")]
+    normalized = EvidenceNormalizer().normalize(raw_signals=[], items=items)
+    assert normalized[0].job_title is None
+    assert normalized[0].job_department is None
+    assert normalized[0].job_location is None
+    assert normalized[0].job_ats_provider is None
+    assert normalized[0].job_posting_date is None
+
+
+def test_normalizer_does_not_cross_contaminate_tech_and_job_fields():
+    """A tech item must never pick up job_* fields and vice versa, even
+    when both a tech and a jobs raw signal are present in the same batch."""
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.TECH,
+            category="javascript",
+            payload={"technology": "React", "provider": "builtwith"},
+            url="https://acme.com/#tech-React",
+        ),
+        RawSignal(
+            source=SignalSource.JOBS,
+            category="engineering_hiring",
+            payload={
+                "title": "Backend Engineer",
+                "department": "Eng",
+                "location": "Remote",
+                "posted_at": None,
+                "provider": "greenhouse",
+                "description_snippet": "...",
+            },
+            url="https://boards.greenhouse.io/acme/jobs/2",
+        ),
+    ]
+    items = [
+        make_item("Uses React", "built with React", source="BuiltWith").model_copy(
+            update={"url": "https://acme.com/#tech-React"}
+        ),
+        make_item("Hiring Backend Engineer", "Acme is hiring", source="Greenhouse").model_copy(
+            update={"url": "https://boards.greenhouse.io/acme/jobs/2"}
+        ),
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    tech_item = next(i for i in normalized if i.technology_name is not None)
+    job_item = next(i for i in normalized if i.job_title is not None)
+
+    assert tech_item.job_title is None
+    assert job_item.technology_name is None

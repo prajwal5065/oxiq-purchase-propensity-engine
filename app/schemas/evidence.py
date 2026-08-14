@@ -52,6 +52,29 @@ class EvidenceItem(BaseModel):
         description="Which scoring pillar this evidence matched, set once a scoring agent claims it.",
     )
 
+    # Structured Technology fields - set by EvidenceNormalizer (not the
+    # extractor) by matching this item's `url` back to the Tech Collector's
+    # RawSignal, same convention as `category`/`collector` above. Null for
+    # non-technology evidence.
+    technology_name: str | None = Field(
+        default=None, description="e.g. 'React', 'AWS' - the exact technology BuiltWith/Wappalyzer detected."
+    )
+    technology_provider: str | None = Field(
+        default=None, description="Which tech-detection provider found it: 'builtwith' or 'wappalyzer'."
+    )
+
+    # Structured Jobs fields - set the same way from the Jobs Collector's
+    # RawSignal.payload (Greenhouse/Lever). Null for non-jobs evidence.
+    job_title: str | None = Field(default=None, description="The job posting's title, e.g. 'Senior ML Engineer'.")
+    job_department: str | None = Field(default=None, description="The posting's department/team, if the ATS reports one.")
+    job_location: str | None = Field(default=None, description="The posting's location, if the ATS reports one.")
+    job_ats_provider: str | None = Field(
+        default=None, description="Which ATS the posting came from: 'greenhouse' or 'lever'."
+    )
+    job_posting_date: datetime | None = Field(
+        default=None, description="When the posting went live, per the ATS - distinct from `published_at`."
+    )
+
     @field_validator("excerpt")
     @classmethod
     def excerpt_not_blank(cls, v: str) -> str:
@@ -80,6 +103,13 @@ class EvidenceRecord(BaseModel):
     collector: str | None
     pillar: str | None
     published_at: datetime | None
+    technology_name: str | None
+    technology_provider: str | None
+    job_title: str | None
+    job_department: str | None
+    job_location: str | None
+    job_ats_provider: str | None
+    job_posting_date: datetime | None
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -1,6 +1,8 @@
 """Tech Collector - uses Wappalyzer to fingerprint a company's frameworks,
 cloud providers, analytics, CRM, marketing tools, and databases.
 """
+from urllib.parse import quote
+
 import httpx
 
 from app.collectors.base import BaseCollector
@@ -21,6 +23,20 @@ RELEVANT_CATEGORIES = {
     "Marketing automation",
     "Databases",
 }
+
+
+def _tech_signal_url(company_domain: str, tech_name: str) -> str:
+    """A distinct, still-company-scoped URL per detected technology.
+
+    Every technology from a given lookup used to share the exact same
+    `https://{domain}` URL, which made it impossible for EvidenceNormalizer
+    to tell which RawSignal a given extracted EvidenceItem came from (its
+    only correlation key is `url`, same convention `_JOBS_SUBTYPE_CATEGORIES`
+    already relies on). The fragment carries the technology name so each
+    signal is uniquely addressable while the URL still resolves to the
+    company's own site.
+    """
+    return f"https://{company_domain}/#tech-{quote(tech_name, safe='')}"
 
 
 class TechCollector(BaseCollector):
@@ -74,7 +90,7 @@ class TechCollector(BaseCollector):
                                             source=SignalSource.TECH,
                                             category=tech_tag,
                                             payload={"technology": tech_name, "provider": "builtwith"},
-                                            url=f"https://{company_domain}",
+                                            url=_tech_signal_url(company_domain, tech_name),
                                         )
                                     )
                             if signals:
@@ -112,7 +128,7 @@ class TechCollector(BaseCollector):
                             source=SignalSource.TECH,
                             category=",".join(sorted(categories)) or "uncategorized",
                             payload={"technology": tech_name, "provider": "wappalyzer"},
-                            url=f"https://{company_domain}",
+                            url=_tech_signal_url(company_domain, tech_name),
                         )
                     )
         except Exception as exc:  # noqa: BLE001

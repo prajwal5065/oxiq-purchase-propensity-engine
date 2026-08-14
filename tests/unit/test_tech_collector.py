@@ -151,3 +151,44 @@ async def test_builtwith_key_is_never_leaked_in_errors():
         
         for err in result.errors:
             assert "test_key" not in err
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_builtwith_signals_have_distinct_urls_per_technology():
+    """Each technology must get its own URL so EvidenceNormalizer can later
+    correlate a specific extracted EvidenceItem back to the RawSignal that
+    named it (see app/services/evidence_normalizer.py) - a shared URL across
+    every technology would make that correlation impossible."""
+    respx.get(BUILTWITH_API_URL).mock(
+        return_value=httpx.Response(200, json=BUILTWITH_SUCCESS_RESPONSE)
+    )
+
+    with patch("Wappalyzer.WebPage.new_from_url"):
+        collector = TechCollector()
+        result = await collector.collect("acme.com")
+
+        urls = [s.url for s in result.signals]
+        assert len(urls) == len(set(urls))
+        assert all(url.startswith("https://acme.com/#tech-") for url in urls)
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_wappalyzer_signals_have_distinct_urls_per_technology():
+    respx.get(BUILTWITH_API_URL).mock(return_value=httpx.Response(429))
+
+    with patch("Wappalyzer.Wappalyzer") as mock_wappalyzer_cls:
+        mock_instance = MagicMock()
+        mock_wappalyzer_cls.latest.return_value = mock_instance
+        mock_instance.analyze_with_categories.return_value = {
+            "Google Analytics": {"categories": ["Analytics"]},
+            "Salesforce": {"categories": ["CRM"]},
+        }
+        with patch("Wappalyzer.WebPage.new_from_url"):
+            collector = TechCollector()
+            result = await collector.collect("acme.com")
+
+            urls = [s.url for s in result.signals]
+            assert len(urls) == 2
+            assert len(urls) == len(set(urls))

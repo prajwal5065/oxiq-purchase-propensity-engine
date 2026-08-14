@@ -15,6 +15,8 @@ This is intentionally simple keyword/heuristic matching, not an LLM call -
 normalization should be cheap, deterministic, and never itself invent a
 fact the extractor didn't already ground.
 """
+from datetime import datetime
+
 from app.models.signal import SignalSource
 from app.schemas.evidence import EvidenceItem
 from app.schemas.signal import RawSignal
@@ -31,6 +33,7 @@ _SOURCE_TO_COLLECTOR: list[tuple[str, SignalSource]] = [
     ("schema.org", SignalSource.COMPANY_PROFILE),
     ("organization profile", SignalSource.COMPANY_PROFILE),
     ("wappalyzer", SignalSource.TECH),
+    ("builtwith", SignalSource.TECH),
     ("tech", SignalSource.TECH),
     ("stack", SignalSource.TECH),
     ("search", SignalSource.SEARCH),
@@ -97,11 +100,26 @@ class EvidenceNormalizer:
         `_JOBS_SUBTYPE_CATEGORIES` above. For every other source this is a
         no-op: no RawSignal from another collector ever carries one of
         those category values.
+
+        The same URL match also recovers the Tech/Jobs Collectors'
+        structured payload fields (technology name/provider; job title/
+        department/location/ATS provider/posting date) onto the matching
+        EvidenceItem - see `_technology_fields_from`/`_job_fields_from`.
+        This is the same trust boundary as the category inheritance above:
+        only TECH/JOBS RawSignal payloads are ever read this way, so an
+        unrelated collector's payload can never leak structured fields
+        onto evidence it didn't produce.
         """
         url_to_jobs_category = {
             signal.url: signal.category
             for signal in raw_signals
             if signal.url and signal.category in _JOBS_SUBTYPE_CATEGORIES
+        }
+        url_to_tech_signal = {
+            signal.url: signal for signal in raw_signals if signal.url and signal.source == SignalSource.TECH
+        }
+        url_to_jobs_signal = {
+            signal.url: signal for signal in raw_signals if signal.url and signal.source == SignalSource.JOBS
         }
 
         seen: set[tuple[str, str]] = set()
@@ -113,18 +131,63 @@ class EvidenceNormalizer:
                 continue
             seen.add(dedupe_key)
 
-            inherited_category = url_to_jobs_category.get(str(item.url)) if item.url else None
-            enriched = item.model_copy(
-                update={
-                    "collector": item.collector or self._infer_collector(item.source),
-                    "category": item.category
-                    or inherited_category
-                    or self._infer_category(item.signal_label, item.excerpt),
-                }
-            )
+            item_url = str(item.url) if item.url else None
+            inherited_category = url_to_jobs_category.get(item_url) if item_url else None
+            update: dict = {
+                "collector": item.collector or self._infer_collector(item.source),
+                "category": item.category
+                or inherited_category
+                or self._infer_category(item.signal_label, item.excerpt),
+            }
+
+            tech_signal = url_to_tech_signal.get(item_url) if item_url else None
+            if tech_signal is not None:
+                update.update(self._technology_fields_from(tech_signal))
+
+            jobs_signal = url_to_jobs_signal.get(item_url) if item_url else None
+            if jobs_signal is not None:
+                update.update(self._job_fields_from(jobs_signal))
+
+            enriched = item.model_copy(update=update)
             normalized.append(enriched)
 
         return normalized
+
+    @staticmethod
+    def _technology_fields_from(signal: RawSignal) -> dict:
+        """Structured technology_name/technology_provider from the Tech
+        Collector's RawSignal.payload (see app/collectors/tech_collector.py) -
+        never invented, only ever copied straight from what the collector
+        already returned."""
+        payload = signal.payload
+        return {
+            "technology_name": payload.get("technology"),
+            "technology_provider": payload.get("provider"),
+        }
+
+    @staticmethod
+    def _job_fields_from(signal: RawSignal) -> dict:
+        """Structured job_* fields from the Jobs Collector's
+        RawSignal.payload (see app/collectors/jobs_collector.py).
+        `model_copy(update=...)` does not re-run Pydantic coercion, so
+        `posted_at` (an ISO string in the payload, same as the collector
+        wrote it) is parsed to a datetime here rather than left as a raw
+        string."""
+        payload = signal.payload
+        posted_at = payload.get("posted_at")
+        job_posting_date = None
+        if posted_at:
+            try:
+                job_posting_date = datetime.fromisoformat(posted_at)
+            except (TypeError, ValueError):
+                job_posting_date = None
+        return {
+            "job_title": payload.get("title"),
+            "job_department": payload.get("department"),
+            "job_location": payload.get("location"),
+            "job_ats_provider": payload.get("provider"),
+            "job_posting_date": job_posting_date,
+        }
 
     @staticmethod
     def _infer_collector(source: str) -> str:

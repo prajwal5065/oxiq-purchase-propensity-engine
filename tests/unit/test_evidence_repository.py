@@ -1,4 +1,5 @@
 import pytest
+from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 import app.models
@@ -71,4 +72,92 @@ async def test_count_by_collector_groups_correctly():
     counts = await evidence_repo.count_by_collector(company.id)
     assert counts["website"] == 2
     assert counts["news"] == 1
+    await session.close()
+
+
+@pytest.mark.asyncio
+async def test_structured_technology_fields_survive_persistence_round_trip():
+    session = await _make_session()
+    company_repo = CompanyRepository(session)
+    evidence_repo = EvidenceRepository(session)
+
+    company = await company_repo.get_or_create(domain="acme.com", name="Acme")
+    item = EvidenceItem(
+        signal_label="Uses React",
+        excerpt="The site is built with React",
+        source="BuiltWith",
+        confidence=0.9,
+        category="technology",
+        collector="tech",
+        technology_name="React",
+        technology_provider="builtwith",
+    )
+    evidence_repo.add_batch(company, [item])
+    await company_repo.commit()
+
+    rows = await evidence_repo.list_by_company(company.id)
+    assert len(rows) == 1
+    assert rows[0].technology_name == "React"
+    assert rows[0].technology_provider == "builtwith"
+    # Existing text fields are untouched.
+    assert rows[0].excerpt == "The site is built with React"
+    await session.close()
+
+
+@pytest.mark.asyncio
+async def test_structured_job_fields_survive_persistence_round_trip():
+    session = await _make_session()
+    company_repo = CompanyRepository(session)
+    evidence_repo = EvidenceRepository(session)
+
+    company = await company_repo.get_or_create(domain="acme.com", name="Acme")
+    item = EvidenceItem(
+        signal_label="Hiring ML Engineer",
+        excerpt="Acme is hiring a Machine Learning Engineer",
+        source="Greenhouse",
+        confidence=0.9,
+        category="ai_ml_hiring",
+        collector="jobs",
+        job_title="Machine Learning Engineer",
+        job_department="Engineering",
+        job_location="Remote",
+        job_ats_provider="greenhouse",
+        job_posting_date=datetime(2026, 8, 1, tzinfo=UTC),
+    )
+    evidence_repo.add_batch(company, [item])
+    await company_repo.commit()
+
+    rows = await evidence_repo.list_by_company(company.id)
+    assert len(rows) == 1
+    assert rows[0].job_title == "Machine Learning Engineer"
+    assert rows[0].job_department == "Engineering"
+    assert rows[0].job_location == "Remote"
+    assert rows[0].job_ats_provider == "greenhouse"
+    assert rows[0].job_posting_date is not None
+    assert rows[0].job_posting_date.year == 2026
+    # Existing text fields are untouched.
+    assert rows[0].excerpt == "Acme is hiring a Machine Learning Engineer"
+    await session.close()
+
+
+@pytest.mark.asyncio
+async def test_structured_fields_default_to_null_for_ordinary_evidence():
+    """A non-tech, non-jobs evidence row must not spuriously get any of
+    the new structured columns populated."""
+    session = await _make_session()
+    company_repo = CompanyRepository(session)
+    evidence_repo = EvidenceRepository(session)
+
+    company = await company_repo.get_or_create(domain="acme.com", name="Acme")
+    evidence_repo.add_batch(company, [make_item("funding", "news")])
+    await company_repo.commit()
+
+    rows = await evidence_repo.list_by_company(company.id)
+    assert rows[0].technology_name is None
+    assert rows[0].technology_provider is None
+    assert rows[0].job_title is None
+    assert rows[0].job_department is None
+    assert rows[0].job_location is None
+    assert rows[0].job_ats_provider is None
+    assert rows[0].job_posting_date is None
     await session.close()

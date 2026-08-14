@@ -1,17 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
+import { BuyingIntentPanel } from "../components/BuyingIntentPanel";
+import { ChangeAnalysisPanel } from "../components/ChangeAnalysisPanel";
 import { ConfidenceExplanationPanel } from "../components/ConfidenceExplanationPanel";
+import { ContradictionsPanel } from "../components/ContradictionsPanel";
 import { DisqualificationPanel } from "../components/DisqualificationPanel";
-import { EvidenceCard } from "../components/EvidenceCard";
+import { DossierNav } from "../components/DossierNav";
 import { EvidenceCoverageSection } from "../components/EvidenceCoverageSection";
 import { EvidenceLog } from "../components/EvidenceLog";
+import { EvidenceSection } from "../components/EvidenceSection";
 import { ExplanationHeadline } from "../components/ExplanationHeadline";
+import { JobsPanel } from "../components/JobsPanel";
 import { PillarExplanationCard } from "../components/PillarExplanationCard";
 import { PillarRadar } from "../components/PillarRadar";
 import { PriorityStamp } from "../components/PriorityStamp";
 import { RecommendationPanel } from "../components/RecommendationPanel";
+import { SalesIntelligenceSection } from "../components/SalesIntelligenceSection";
 import { ScoreDial } from "../components/ScoreDial";
+import { TechnologyPanel } from "../components/TechnologyPanel";
+import { WhyNowPanel } from "../components/WhyNowPanel";
 import { formatRelativeDate, priorityFromScore } from "../lib/format";
 import type {
   AnalysisExplanation,
@@ -31,6 +39,24 @@ interface DossierData {
   evidence: EvidenceRecord[];
 }
 
+const NAV_ITEMS = [
+  { id: "decision", label: "Final Decision" },
+  { id: "decision-intelligence", label: "Decision Intelligence" },
+  { id: "sales-intelligence", label: "Sales Intelligence" },
+  { id: "pillars", label: "Pillars" },
+  { id: "evidence", label: "Evidence" },
+  { id: "technology", label: "Technology" },
+  { id: "jobs", label: "Jobs" },
+];
+
+function SectionHeading({ id, children }: { id: string; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="font-mono text-[10px] uppercase tracking-widest text-paper-faint mb-4 scroll-mt-16">
+      {children}
+    </h2>
+  );
+}
+
 export function CompanyPage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<DossierData | null>(null);
@@ -39,6 +65,8 @@ export function CompanyPage() {
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
+    setData(null);
+    setError(null);
 
     Promise.all([
       api.getCompany(id),
@@ -81,10 +109,14 @@ export function CompanyPage() {
 
   if (!data) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-16 text-center">
-        <p className="font-mono text-xs uppercase tracking-widest text-paper-faint animate-pulse-glow">
-          Pulling dossier&hellip;
-        </p>
+      <div className="max-w-5xl mx-auto px-6 py-10 animate-pulse-glow">
+        <div className="h-3 w-32 bg-ink-700 rounded-sm mb-8" />
+        <div className="h-8 w-64 bg-ink-700 rounded-sm mb-3" />
+        <div className="h-3 w-40 bg-ink-700 rounded-sm mb-10" />
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="h-48 bg-ink-800 border border-ink-600 rounded-sm" />
+          <div className="h-48 bg-ink-800 border border-ink-600 rounded-sm" />
+        </div>
       </div>
     );
   }
@@ -97,6 +129,7 @@ export function CompanyPage() {
     ? finalDecision !== "qualified"
     : data.purchaseScore === 0 && data.purchaseConfidence === 0;
   const priority = data.recommendation?.contact_priority ?? priorityFromScore(data.purchaseScore, disqualified);
+  const decisionIntelligence = data.explanation?.decision_intelligence;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
@@ -104,7 +137,7 @@ export function CompanyPage() {
         &larr; Dossier index
       </Link>
 
-      <div className="mt-4 flex flex-wrap items-start justify-between gap-4 mb-8">
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="font-display text-3xl text-paper">{data.company.name}</h1>
           <div className="flex items-center gap-3 mt-1">
@@ -122,70 +155,107 @@ export function CompanyPage() {
         <PriorityStamp priority={priority} disqualified={disqualified} />
       </div>
 
-      {data.explanation && <ExplanationHeadline headline={data.explanation.headline} />}
+      <DossierNav items={NAV_ITEMS} />
 
-      <div className="grid md:grid-cols-2 gap-6 mb-10">
-        <div className="border border-ink-600 bg-ink-800 rounded-sm p-6 flex items-center justify-center">
-          <ScoreDial
-            score={data.purchaseScore}
-            confidence={data.purchaseConfidence}
-            disqualified={disqualified}
-          />
-        </div>
-        <div className="border border-ink-600 bg-ink-800 rounded-sm p-6 flex items-center justify-center">
-          <PillarRadar pillars={data.pillars} />
-        </div>
-      </div>
+      {/* 1. FINAL DECISION */}
+      <section className="mb-10">
+        <SectionHeading id="decision">Final Decision</SectionHeading>
 
-      {data.explanation && (data.explanation.disqualification.final_decision !== "qualified") && (
-        <div className="mb-10">
-          <DisqualificationPanel disqualification={data.explanation.disqualification} />
-        </div>
-      )}
+        {data.explanation && <ExplanationHeadline headline={data.explanation.headline} />}
 
-      {data.explanation && (
-        <div className="grid md:grid-cols-2 gap-6 mb-10">
-          <EvidenceCoverageSection coverage={data.explanation.evidence_coverage} />
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <div className="border border-ink-600 bg-ink-800 rounded-sm p-6 flex items-center justify-center">
+            <ScoreDial
+              score={data.purchaseScore}
+              confidence={data.purchaseConfidence}
+              disqualified={disqualified}
+            />
+          </div>
+          <div className="border border-ink-600 bg-ink-800 rounded-sm p-6 flex items-center justify-center">
+            <PillarRadar pillars={data.pillars} />
+          </div>
+        </div>
+
+        {data.explanation && data.explanation.disqualification.final_decision !== "qualified" && (
+          <div className="mb-6">
+            <DisqualificationPanel disqualification={data.explanation.disqualification} />
+          </div>
+        )}
+
+        {data.explanation && (
           <ConfidenceExplanationPanel confidence={data.explanation.confidence_explanation} />
-        </div>
-      )}
+        )}
 
-      {data.recommendation && (
-        <div className="mb-10">
-          <RecommendationPanel recommendation={data.recommendation} disqualified={disqualified} />
-        </div>
-      )}
+        {data.recommendation && (
+          <div className="mt-6">
+            <RecommendationPanel recommendation={data.recommendation} disqualified={disqualified} />
+          </div>
+        )}
+      </section>
 
-      {data.explanation && data.explanation.pillar_explanations.length > 0 ? (
-        <div className="mb-10">
-          <h2 className="font-mono text-[10px] uppercase tracking-widest text-paper-faint mb-4">
-            Pillar explanations
-          </h2>
+      {/* 2. DECISION INTELLIGENCE */}
+      <section className="mb-10">
+        <SectionHeading id="decision-intelligence">Decision Intelligence</SectionHeading>
+
+        {decisionIntelligence ? (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <BuyingIntentPanel intent={decisionIntelligence.recommendation.buying_intent} />
+              <WhyNowPanel whyNow={decisionIntelligence.recommendation.why_now} />
+            </div>
+            <ContradictionsPanel contradictions={decisionIntelligence.recommendation.contradictions} />
+            <ChangeAnalysisPanel changeAnalysis={decisionIntelligence.change_analysis} />
+            {data.explanation && <EvidenceCoverageSection coverage={data.explanation.evidence_coverage} />}
+          </div>
+        ) : (
+          <div className="border border-dashed border-ink-500 rounded-sm p-8 text-center">
+            <p className="font-mono text-xs uppercase tracking-wider text-paper-faint mb-1">
+              Decision Intelligence unavailable
+            </p>
+            <p className="text-sm text-paper-dim max-w-md mx-auto">
+              This analysis predates the Decision Intelligence feature, or hasn&rsquo;t completed yet.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* 3. SALES INTELLIGENCE */}
+      <section className="mb-10">
+        <SectionHeading id="sales-intelligence">Sales Intelligence</SectionHeading>
+        <SalesIntelligenceSection sales={data.explanation?.sales_intelligence ?? null} />
+      </section>
+
+      {/* Pillar breakdown */}
+      <section className="mb-10">
+        <SectionHeading id="pillars">Pillars</SectionHeading>
+        {data.explanation && data.explanation.pillar_explanations.length > 0 ? (
           <div className="space-y-3">
             {data.explanation.pillar_explanations.map((pillar) => (
               <PillarExplanationCard key={pillar.score_type} pillar={pillar} />
             ))}
           </div>
-        </div>
-      ) : (
-        <div className="mb-10">
-          <h2 className="font-mono text-[10px] uppercase tracking-widest text-paper-faint mb-4">Evidence log</h2>
+        ) : (
           <EvidenceLog pillars={data.pillars} />
-        </div>
-      )}
+        )}
+      </section>
 
-      {data.evidence.length > 0 && (
-        <div>
-          <h2 className="font-mono text-[10px] uppercase tracking-widest text-paper-faint mb-4">
-            All evidence ({data.evidence.length})
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {data.evidence.map((item) => (
-              <EvidenceCard key={item.id} evidence={item} />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* 4. EVIDENCE */}
+      <section className="mb-10">
+        <SectionHeading id="evidence">Evidence ({data.evidence.length})</SectionHeading>
+        <EvidenceSection evidence={data.evidence} explanation={data.explanation} />
+      </section>
+
+      {/* 5. TECHNOLOGY */}
+      <section className="mb-10">
+        <SectionHeading id="technology">Technology</SectionHeading>
+        <TechnologyPanel evidence={data.evidence} />
+      </section>
+
+      {/* 6. JOBS */}
+      <section>
+        <SectionHeading id="jobs">Jobs</SectionHeading>
+        <JobsPanel evidence={data.evidence} />
+      </section>
     </div>
   );
 }
