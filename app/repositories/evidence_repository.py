@@ -72,4 +72,11 @@ class EvidenceRepository:
             collector=item.collector,
             pillar=item.pillar,
             published_at=item.published_at,
+            technology_name=item.technology_name,
+            technology_provider=item.technology_provider,
+            job_title=item.job_title,
+            job_department=item.job_department,
+            job_location=item.job_location,
+            job_ats_provider=item.job_ats_provider,
+            job_posting_date=item.job_posting_date,
         )

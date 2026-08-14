@@ -166,6 +166,186 @@ export interface DisqualificationExplanation {
   recommended_next_action: string;
 }
 
+// --- Decision Intelligence -------------------------------------------------
+
+export type FreshnessLabel = "very_fresh" | "recent" | "aging" | "stale" | "unknown";
+
+export type BuyingIntentLevel = "strong" | "moderate" | "weak" | "none" | "insufficient_data";
+
+export interface BuyingIntentSignal {
+  evidence_id: string | null;
+  label: string;
+  excerpt: string;
+  source: string;
+  strength: "strong" | "moderate" | "weak";
+}
+
+export interface BuyingIntentAssessment {
+  level: BuyingIntentLevel;
+  score: number;
+  matched_signals: BuyingIntentSignal[];
+  rationale: string;
+}
+
+export type ContradictionSeverity = "high" | "medium";
+
+export interface ContradictionEvidenceRef {
+  evidence_id: string | null;
+  label: string;
+  excerpt: string;
+  source: string;
+}
+
+export interface ContradictionFinding {
+  theme: string;
+  severity: ContradictionSeverity;
+  description: string;
+  evidence_a: ContradictionEvidenceRef;
+  evidence_b: ContradictionEvidenceRef;
+}
+
+export interface ContradictionReport {
+  has_contradictions: boolean;
+  findings: ContradictionFinding[];
+  summary: string;
+}
+
+export interface WhyNowTrigger {
+  evidence_id: string | null;
+  label: string;
+  excerpt: string;
+  source: string;
+  trigger_type: string;
+  published_at: string | null;
+  freshness_label: FreshnessLabel;
+}
+
+export interface WhyNowExplanation {
+  has_timing_trigger: boolean;
+  data_sufficient: boolean;
+  triggers: WhyNowTrigger[];
+  narrative: string;
+}
+
+export type DecisionPriority = "high_priority" | "medium_priority" | "low_priority" | "insufficient_data";
+
+export const DECISION_PRIORITY_LABELS: Record<DecisionPriority, string> = {
+  high_priority: "High Priority",
+  medium_priority: "Medium Priority",
+  low_priority: "Low Priority",
+  insufficient_data: "Insufficient Data",
+};
+
+export interface DecisionFactor {
+  name: string;
+  value: number;
+  weight: number;
+  description: string;
+}
+
+export interface DecisionRecommendation {
+  priority: DecisionPriority;
+  decision_score: number | null;
+  factors: DecisionFactor[];
+  rationale: string;
+  buying_intent: BuyingIntentAssessment;
+  contradictions: ContradictionReport;
+  why_now: WhyNowExplanation;
+}
+
+export interface ChangeFactor {
+  description: string;
+  evidence_needed: string[];
+}
+
+export interface DecisionChangeAnalysis {
+  factors: ChangeFactor[];
+  summary: string;
+}
+
+export interface EvidenceConfidenceScore {
+  evidence_id: string;
+  label: string;
+  source: string;
+  collector: string | null;
+  extraction_confidence: number;
+  source_reliability: number;
+  freshness_weight: number;
+  composite_confidence: number;
+}
+
+export interface SourceReliability {
+  collector: string;
+  tier: "high" | "medium" | "low";
+  weight: number;
+  rationale: string;
+  evidence_count: number;
+}
+
+export interface DecisionIntelligence {
+  recommendation: DecisionRecommendation;
+  change_analysis: DecisionChangeAnalysis;
+  evidence_confidence: EvidenceConfidenceScore[];
+  source_reliability: SourceReliability[];
+}
+
+// --- Sales Intelligence ------------------------------------------------------
+
+export interface OpportunityItem {
+  description: string;
+  evidence_ids: string[];
+  confidence: number;
+}
+
+export interface SolutionFitItem {
+  use_case: string;
+  fit_reasoning: string;
+  evidence_ids: string[];
+  confidence: number;
+}
+
+export interface StakeholderRole {
+  role_title: string;
+  rationale: string;
+  evidence_ids: string[];
+}
+
+export interface SalesTrigger {
+  trigger_type: string;
+  label: string;
+  excerpt: string;
+  source: string;
+  evidence_id: string | null;
+  freshness_label: string;
+  narrative: string;
+}
+
+export type SalesRiskType = "contradiction" | "missing_evidence" | "existing_vendor" | "other";
+
+export interface SalesRisk {
+  description: string;
+  risk_type: SalesRiskType;
+  evidence_ids: string[];
+}
+
+export interface SalesAction {
+  action: string;
+  rationale: string;
+  evidence_ids: string[];
+}
+
+export interface SalesIntelligence {
+  opportunity: OpportunityItem | null;
+  solution_fit: SolutionFitItem | null;
+  likely_buyer_roles: StakeholderRole[];
+  sales_trigger: SalesTrigger | null;
+  risks: SalesRisk[];
+  recommended_next_action: SalesAction | null;
+  evidence_ids: string[];
+  confidence: number;
+  data_sufficient: boolean;
+}
+
 export interface AnalysisExplanation {
   company_domain: string;
   headline: string;
@@ -173,6 +353,8 @@ export interface AnalysisExplanation {
   confidence_explanation: ConfidenceExplanation;
   pillar_explanations: PillarExplanation[];
   disqualification: DisqualificationExplanation;
+  decision_intelligence: DecisionIntelligence;
+  sales_intelligence: SalesIntelligence | null;
   generated_at: string;
 }
 
@@ -187,6 +369,16 @@ export interface EvidenceRecord {
   collector: string | null;
   pillar: string | null;
   published_at: string | null;
+  // Structured Technology fields (null on non-technology evidence, or when
+  // extraction couldn't be correlated back to a raw tech signal by URL).
+  technology_name: string | null;
+  technology_provider: string | null;
+  // Structured Jobs fields (null on non-jobs evidence, same caveat).
+  job_title: string | null;
+  job_department: string | null;
+  job_location: string | null;
+  job_ats_provider: string | null;
+  job_posting_date: string | null;
   created_at: string;
 }
 

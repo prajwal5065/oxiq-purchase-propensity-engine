@@ -1,11 +1,41 @@
 import { formatPercent, formatRelativeDate } from "../lib/format";
 import type { EvidenceRecord } from "../types";
 
-export function EvidenceCard({ evidence }: { evidence: EvidenceRecord }) {
+const DIRECTION_CONFIG: Record<"positive" | "negative", { label: string; color: string; border: string }> = {
+  positive: { label: "POSITIVE", color: "text-signal", border: "border-l-signal" },
+  negative: { label: "NEGATIVE", color: "text-rose", border: "border-l-rose" },
+};
+
+export function EvidenceCard({
+  evidence,
+  direction,
+}: {
+  evidence: EvidenceRecord;
+  /** When this item was matched by a pillar's scoring as a positive or
+   * negative contribution (cross-referenced by evidence_id from
+   * PillarExplanation), badge it accordingly. Undefined when the item
+   * wasn't claimed by any pillar's contribution list. */
+  direction?: "positive" | "negative";
+}) {
+  const directionConfig = direction ? DIRECTION_CONFIG[direction] : null;
+
   return (
-    <div className="border border-ink-600 rounded-sm p-3 bg-ink-900">
+    <div
+      className={`border border-ink-600 rounded-sm p-3 bg-ink-900 ${
+        directionConfig ? `border-l-2 ${directionConfig.border}` : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-3 mb-1.5">
-        <span className="font-mono text-[10px] uppercase tracking-wide text-signal">{evidence.signal_label}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-mono text-[10px] uppercase tracking-wide text-signal truncate">
+            {evidence.signal_label}
+          </span>
+          {directionConfig && (
+            <span className={`font-mono text-[9px] uppercase tracking-wide shrink-0 ${directionConfig.color}`}>
+              {directionConfig.label}
+            </span>
+          )}
+        </div>
         <span className="font-mono text-[10px] text-paper-faint shrink-0">
           {formatPercent(evidence.confidence)} confidence
         </span>
