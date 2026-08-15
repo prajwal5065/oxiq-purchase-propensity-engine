@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     celery_broker_url: str = Field(default="redis://localhost:6379/1")
     celery_result_backend: str = Field(default="redis://localhost:6379/2")
 
-    anthropic_api_key: str | None = None
-    anthropic_model: str = Field(default="claude-sonnet-4-5")
+    gemini_api_key: str | None = None
+    gemini_model: str = Field(default="gemini-2.5-flash")
 
     tavily_api_key: str | None = None
     google_news_rss_base: str = Field(default="https://news.google.com/rss/search")
