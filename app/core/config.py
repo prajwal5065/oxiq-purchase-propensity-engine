@@ -38,13 +38,16 @@ class Settings(BaseSettings):
     crawl4ai_headless: bool = True
     crawl4ai_timeout_seconds: int = 30
 
-    # Company & Technology Intelligence - both providers below are free/
-    # unauthenticated public sources, so no API key setting exists yet. A
-    # future paid provider (Crunchbase, Clearbit, ZoomInfo...) adds its own
-    # optional `*_api_key` setting here without touching the collector.
+    # Company & Technology Intelligence. Company profile/jobs providers
+    # below are free/unauthenticated public sources with no key setting.
+    # Technology Intelligence uses BuiltWith as the primary, keyed provider
+    # (BUILTWITH_API_KEY, server-side only - never returned by any API
+    # response) with the existing Python (Wappalyzer) detector as an
+    # unauthenticated fallback when BuiltWith is unconfigured, rate
+    # limited, or erroring - see app/collectors/tech_collector.py.
     company_profile_timeout_seconds: int = 15
     wikidata_api_base: str = Field(default="https://www.wikidata.org/w/api.php")
-    
+
     builtwith_api_key: str | None = None
 
     # Jobs (Greenhouse / Lever) - both are free, unauthenticated public

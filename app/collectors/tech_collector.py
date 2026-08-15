@@ -107,8 +107,10 @@ class TechCollector(BaseCollector):
                     errors.append("builtwith: Quota exceeded or rate limited (429)")
                 else:
                     errors.append(f"builtwith: HTTP {response.status_code}")
-            except Exception as exc:
-                errors.append(f"builtwith: {exc}")
+            except httpx.TimeoutException as exc:
+                errors.append(f"builtwith: timeout - {exc or 'request timed out'}")
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"builtwith: error - {exc}")
         else:
             errors.append("builtwith: No API key configured")
 
