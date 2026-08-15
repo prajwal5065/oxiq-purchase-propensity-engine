@@ -165,6 +165,75 @@ async def test_technology_fields_flow_from_collector_to_api_schema(monkeypatch):
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_technology_fallback_provider_flows_from_collector_to_api_schema(monkeypatch):
+    """Same pipeline as the success-path test above, but for the fallback
+    branch: BuiltWith 429s, the Python (Wappalyzer) detector picks up the
+    technology instead, and technology_provider must read 'wappalyzer' -
+    not 'builtwith' - all the way through to the API schema. This is the
+    provider-layer traceability guarantee: the frontend/API can always
+    tell which provider actually supplied a given technology fact."""
+    from unittest.mock import MagicMock, patch
+
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    monkeypatch.setenv("ENABLE_LIVE_TECH_DETECTION", "true")
+    monkeypatch.setenv("BUILTWITH_API_KEY", "test_key")
+
+    respx.get(BUILTWITH_API_URL).mock(return_value=httpx.Response(429))
+
+    with patch("Wappalyzer.Wappalyzer") as mock_wappalyzer_cls:
+        mock_instance = MagicMock()
+        mock_wappalyzer_cls.latest.return_value = mock_instance
+        mock_instance.analyze_with_categories.return_value = {
+            "Google Analytics": {"categories": ["Analytics"]}
+        }
+        with patch("Wappalyzer.WebPage.new_from_url"):
+            # Stage 1: TechCollector -> RawSignal (BuiltWith fails, falls back)
+            collector_result = await TechCollector().collect("acme.com")
+
+    assert collector_result.is_live is True
+    assert len(collector_result.signals) == 1
+    assert collector_result.signals[0].payload["provider"] == "wappalyzer"
+    # Traceability: the fallback reason is recorded even though it succeeded.
+    assert any("429" in err or "quota" in err.lower() for err in collector_result.errors)
+
+    # Stage 2: simulated extraction -> EvidenceItem
+    extracted_items = _simulate_tech_extraction(collector_result.signals)
+
+    # Stage 3: EvidenceNormalizer -> structured fields attached via URL match
+    normalized = EvidenceNormalizer().normalize(raw_signals=collector_result.signals, items=extracted_items)
+    ga_item = next(i for i in normalized if i.technology_name == "Google Analytics")
+    assert ga_item.technology_provider == "wappalyzer"
+
+    # Stage 4: persist, then read back
+    session_factory = await _make_session_factory()
+    async with session_factory() as session:
+        company_repo = CompanyRepository(session)
+        evidence_repo = EvidenceRepository(session)
+        company = await company_repo.get_or_create(domain="acme.com", name="Acme")
+        evidence_repo.add_batch(company, normalized)
+        await company_repo.commit()
+
+    async with session_factory() as session:
+        company = await CompanyRepository(session).get_or_create(domain="acme.com", name="Acme")
+        rows = await EvidenceRepository(session).list_by_company(company.id)
+
+    persisted = next(r for r in rows if r.technology_name == "Google Analytics")
+    assert persisted.technology_provider == "wappalyzer"
+
+    # Stage 5: the API's response schema
+    record = EvidenceRecord.model_validate(persisted)
+    assert record.technology_name == "Google Analytics"
+    assert record.technology_provider == "wappalyzer"
+
+    get_settings.cache_clear()
+    monkeypatch.delenv("ENABLE_LIVE_TECH_DETECTION", raising=False)
+    monkeypatch.delenv("BUILTWITH_API_KEY", raising=False)
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_job_fields_flow_from_collector_to_api_schema(monkeypatch):
     """RawSignal -> EvidenceItem -> Evidence (persisted) -> EvidenceRecord,
     proving job_title/job_department/job_location/job_ats_provider/

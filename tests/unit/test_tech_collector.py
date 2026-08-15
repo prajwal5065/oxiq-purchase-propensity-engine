@@ -192,3 +192,100 @@ async def test_wappalyzer_signals_have_distinct_urls_per_technology():
             urls = [s.url for s in result.signals]
             assert len(urls) == 2
             assert len(urls) == len(set(urls))
+
+
+# --- Provider layer: consistency, empty-key edge case, traceability -------
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_builtwith_success_result_never_mixes_providers():
+    """'BuiltWith success -> use only BuiltWith' as a hard invariant: a
+    single CollectorResult must never contain signals from both providers."""
+    respx.get(BUILTWITH_API_URL).mock(
+        return_value=httpx.Response(200, json=BUILTWITH_SUCCESS_RESPONSE)
+    )
+
+    with patch("Wappalyzer.WebPage.new_from_url"):
+        collector = TechCollector()
+        result = await collector.collect("acme.com")
+
+        providers = {s.payload["provider"] for s in result.signals}
+        assert providers == {"builtwith"}
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_fallback_result_never_mixes_providers():
+    respx.get(BUILTWITH_API_URL).mock(return_value=httpx.Response(429))
+
+    with patch("Wappalyzer.Wappalyzer") as mock_wappalyzer_cls:
+        mock_instance = MagicMock()
+        mock_wappalyzer_cls.latest.return_value = mock_instance
+        mock_instance.analyze_with_categories.return_value = {
+            "Google Analytics": {"categories": ["Analytics"]},
+            "Salesforce": {"categories": ["CRM"]},
+        }
+        with patch("Wappalyzer.WebPage.new_from_url"):
+            collector = TechCollector()
+            result = await collector.collect("acme.com")
+
+            providers = {s.payload["provider"] for s in result.signals}
+            assert providers == {"wappalyzer"}
+
+
+@pytest.mark.asyncio
+async def test_empty_string_builtwith_key_treated_as_not_configured(monkeypatch):
+    """An empty string is a realistic misconfiguration (e.g. an unset env
+    var interpolated as ''), distinct from the key being entirely absent
+    (None) - both must fall back the same way."""
+    settings = get_settings()
+    monkeypatch.setattr(settings, "builtwith_api_key", "")
+
+    with patch("Wappalyzer.Wappalyzer") as mock_wappalyzer_cls:
+        mock_instance = MagicMock()
+        mock_wappalyzer_cls.latest.return_value = mock_instance
+        mock_instance.analyze_with_categories.return_value = {"Salesforce": {"categories": ["CRM"]}}
+        with patch("Wappalyzer.WebPage.new_from_url") as mock_webpage:
+            collector = TechCollector()
+            result = await collector.collect("acme.com")
+
+            assert result.signals[0].payload["provider"] == "wappalyzer"
+            mock_webpage.assert_called_once()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_builtwith_success_resolves_to_success_status():
+    respx.get(BUILTWITH_API_URL).mock(
+        return_value=httpx.Response(200, json=BUILTWITH_SUCCESS_RESPONSE)
+    )
+    with patch("Wappalyzer.WebPage.new_from_url"):
+        result = await TechCollector().collect("acme.com")
+        assert result.resolved_status == CollectorStatus.SUCCESS
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_fallback_success_also_resolves_to_success_status():
+    """The collector succeeded overall even though it used the fallback -
+    resolved_status must reflect the outcome, not which provider served it."""
+    respx.get(BUILTWITH_API_URL).mock(return_value=httpx.Response(429))
+    with patch("Wappalyzer.Wappalyzer") as mock_wappalyzer_cls:
+        mock_instance = MagicMock()
+        mock_wappalyzer_cls.latest.return_value = mock_instance
+        mock_instance.analyze_with_categories.return_value = {"Salesforce": {"categories": ["CRM"]}}
+        with patch("Wappalyzer.WebPage.new_from_url"):
+            result = await TechCollector().collect("acme.com")
+            assert result.resolved_status == CollectorStatus.SUCCESS
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_not_configured_stub_mode_reports_not_configured_status(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_live_tech_detection", False)
+    result = await TechCollector().collect("acme.com")
+    assert result.resolved_status == CollectorStatus.NOT_CONFIGURED
+    assert result.is_live is False
+    assert result.signals == []
