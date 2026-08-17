@@ -17,13 +17,20 @@ app = FastAPI(
 )
 
 app.include_router(health_router, tags=["health"])
-# The frontend's API client (frontend/src/api/client.ts) defaults to
-# calling every endpoint under an /api prefix whenever VITE_API_BASE_URL
-# isn't set at build time (the documented, expected default for a
-# same-origin production deployment - see frontend/.env.example). The
-# routes below previously had no prefix at all, so any deployed frontend
-# relying on that default - e.g. its /companies and /dashboard/summary
-# calls - would 404. /health stays unprefixed: it's a liveness/readiness
-# endpoint conventionally polled directly by infra (Docker/k8s), and the
-# frontend never calls it.
+# api_router is intentionally mounted at BOTH the bare root and under /api.
+#
+# frontend/src/api/client.ts defaults to calling every endpoint under an
+# /api prefix whenever VITE_API_BASE_URL isn't set at build time - that's
+# the /api mount below (added because a deployment relying on that default
+# was 404ing).
+#
+# But the live Render deployment's actual frontend build calls the BARE
+# paths directly (confirmed: GET /companies and the dashboard-summary
+# endpoint 404'd in production on commit 9da859f, which only had the /api
+# mount) - so VITE_API_BASE_URL is evidently set there to something that
+# resolves without an /api segment. Mounting the same router at the bare
+# root as well fixes that deployment immediately, without needing to know
+# exactly how its VITE_API_BASE_URL is configured, and without touching or
+# breaking whatever relies on the /api mount.
+app.include_router(api_router, tags=["propensity"])
 app.include_router(api_router, prefix="/api", tags=["propensity"])
