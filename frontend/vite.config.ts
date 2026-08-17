@@ -9,10 +9,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // Backend routes are mounted under /api (see app/main.py) - forward
+      // as-is, no path rewrite needed.
       "/api": {
         target: "http://localhost:8000",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
   },

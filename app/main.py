@@ -17,4 +17,13 @@ app = FastAPI(
 )
 
 app.include_router(health_router, tags=["health"])
-app.include_router(api_router, tags=["propensity"])
+# The frontend's API client (frontend/src/api/client.ts) defaults to
+# calling every endpoint under an /api prefix whenever VITE_API_BASE_URL
+# isn't set at build time (the documented, expected default for a
+# same-origin production deployment - see frontend/.env.example). The
+# routes below previously had no prefix at all, so any deployed frontend
+# relying on that default - e.g. its /companies and /dashboard/summary
+# calls - would 404. /health stays unprefixed: it's a liveness/readiness
+# endpoint conventionally polled directly by infra (Docker/k8s), and the
+# frontend never calls it.
+app.include_router(api_router, prefix="/api", tags=["propensity"])

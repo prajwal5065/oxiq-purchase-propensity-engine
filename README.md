@@ -95,6 +95,9 @@ nothing here depends on live network access or real API keys.
 
 ## API
 
+All routes below are mounted under `/api` (e.g. `POST /api/analyze`) except `GET /health`, which
+stays unprefixed for infra liveness checks.
+
 `POST /analyze` runs the pipeline as a background Celery job rather than blocking the request -
 a live run against real collectors/LLM would be too slow for a synchronous HTTP call. Poll
 `GET /jobs/{job_id}` for status, then fetch results once it's `completed`.
