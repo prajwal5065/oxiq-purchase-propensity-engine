@@ -2,6 +2,7 @@ import { formatDate, formatLabel, formatRelativeDate } from "../lib/format";
 import type { EvidenceRecord } from "../types";
 
 const HIRING_CATEGORIES = new Set([
+  "hiring",
   "ai_ml_hiring",
   "engineering_hiring",
   "data_hiring",
@@ -16,7 +17,13 @@ const ATS_LABEL: Record<string, string> = {
 };
 
 export function JobsPanel({ evidence }: { evidence: EvidenceRecord[] }) {
-  const jobsEvidence = evidence.filter((e) => e.collector === "jobs");
+  const jobsEvidence = evidence.filter(
+    (e) =>
+      e.collector === "jobs" ||
+      e.category === "hiring" ||
+      (e.category && e.category.endsWith("_hiring")) ||
+      (e.job_title && e.job_title.trim() !== "")
+  );
 
   if (jobsEvidence.length === 0) {
     return (
@@ -33,8 +40,23 @@ export function JobsPanel({ evidence }: { evidence: EvidenceRecord[] }) {
   return (
     <div className="space-y-3">
       {jobsEvidence.map((item) => {
-        const atsLabel = item.job_ats_provider ? (ATS_LABEL[item.job_ats_provider] ?? item.job_ats_provider) : item.source;
+        let atsLabel = item.job_ats_provider
+          ? (ATS_LABEL[item.job_ats_provider] ?? item.job_ats_provider)
+          : null;
+        if (!atsLabel && item.url) {
+          const urlStr = item.url.toLowerCase();
+          if (urlStr.includes("greenhouse")) {
+            atsLabel = "Greenhouse";
+          } else if (urlStr.includes("lever")) {
+            atsLabel = "Lever";
+          }
+        }
+        if (!atsLabel) {
+          atsLabel = item.source ? (item.source.charAt(0).toUpperCase() + item.source.slice(1)) : "Job Board";
+        }
+
         const postingDate = item.job_posting_date ?? item.published_at;
+
         return (
           <div key={item.id} className="border border-ink-600 rounded-sm p-4 bg-ink-900">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-1.5">
@@ -46,7 +68,7 @@ export function JobsPanel({ evidence }: { evidence: EvidenceRecord[] }) {
                   </p>
                 )}
               </div>
-              {item.category && HIRING_CATEGORIES.has(item.category) && (
+              {item.category && (HIRING_CATEGORIES.has(item.category) || item.category.includes("hiring")) && (
                 <span className="font-mono text-[10px] uppercase tracking-wide text-signal shrink-0 border border-signal/40 rounded-sm px-1.5 py-0.5">
                   {formatLabel(item.category)}
                 </span>
