@@ -1,5 +1,6 @@
 """FastAPI application entrypoint."""
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.api.routes import router as api_router
@@ -14,6 +15,20 @@ app = FastAPI(
         "Not a chatbot, not a lead-gen tool, not a CRM."
     ),
     version="0.1.0",
+)
+
+# The deployed frontend (Vercel) and this API (Render) are on different
+# origins, so the browser enforces CORS on every request between them.
+# Without this, the browser blocks the response before the frontend ever
+# sees it - independent of and in addition to the /companies, /api route
+# mounting above. The frontend (frontend/src/api/client.ts) only ever
+# sends GET/POST with a Content-Type: application/json header and no
+# credentials, so that's all that's allowed here.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://oxiq-purchase-propensity-engine.vercel.app"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 app.include_router(health_router, tags=["health"])
