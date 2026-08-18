@@ -12,7 +12,8 @@ COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
 
-RUN pip install --no-cache-dir -e .
+RUN pip install --no-cache-dir "setuptools>=68.0" \
+    && pip install --no-cache-dir --no-build-isolation .
 
 EXPOSE 8000
 
