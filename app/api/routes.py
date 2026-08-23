@@ -18,7 +18,10 @@ GET  /dashboard/summary           - portfolio-wide decision/confidence/
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.services.docx_generator import generate_company_docx
 
 from app.aggregation.portfolio_summarizer import PortfolioSummarizer
 from app.db.session import get_db
@@ -237,3 +240,29 @@ async def get_sales_intelligence(
             detail="Sales Intelligence not available for this analysis run (analysis may predate this feature)",
         )
     return SalesIntelligence.model_validate(sales_payload)
+
+
+@router.get("/company/{company_id}/report/docx")
+async def get_company_docx_report(
+    company_id: uuid.UUID, db: AsyncSession = Depends(get_db)
+) -> StreamingResponse:
+    """Generate a structured, printable Word document report for a company."""
+    repo = CompanyRepository(db)
+    company = await repo.get_by_id(company_id)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Company not found")
+    if not company.explanations:
+        raise HTTPException(status_code=404, detail="No analysis explanation generated yet for this company")
+    
+    latest_explanation = max(company.explanations, key=lambda e: e.created_at)
+    explanation = AnalysisExplanation.model_validate(latest_explanation.payload)
+    
+    stream = generate_company_docx(company, explanation)
+    
+    filename = f"oxiq_report_{company.name.lower().replace(' ', '_')}.docx"
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+

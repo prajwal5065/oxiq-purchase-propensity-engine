@@ -111,6 +111,12 @@ class JsonLdOrganizationProvider(CompanyProfileProvider):
     async def fetch(self, company_domain: str, timeout_seconds: float) -> ProviderOutput:
         signals: list[RawSignal] = []
         errors: list[str] = []
+
+        # Guard: spaces mean a company name was passed instead of a domain
+        if " " in company_domain:
+            errors.append(f"Invalid domain '{company_domain}' (contains spaces). Homepage fetch skipped.")
+            return ProviderOutput(signals=signals, errors=errors)
+
         url = f"https://{company_domain.rstrip('/')}"
 
         try:

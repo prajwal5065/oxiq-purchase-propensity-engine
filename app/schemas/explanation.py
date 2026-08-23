@@ -128,7 +128,10 @@ class AnalysisExplanation(BaseModel):
     confidence_explanation: ConfidenceExplanation
     pillar_explanations: list[PillarExplanation] = Field(default_factory=list)
     disqualification: DisqualificationExplanation
-    decision_intelligence: DecisionIntelligence
+    decision_intelligence: DecisionIntelligence | None = Field(
+        default=None,
+        description="Decision Intelligence layer. None when the analysis predates this feature."
+    )
     sales_intelligence: SalesIntelligence | None = Field(
         default=None,
         description=(

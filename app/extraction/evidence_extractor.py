@@ -4,7 +4,7 @@ Turns raw collector signals into grounded EvidenceItems. The LLM is
 instructed - and the schema enforces - that it must never invent a fact:
 every EvidenceItem requires a verbatim-derived excerpt, its source, and a
 confidence score. Runs in stub mode (returns []) when ENABLE_LIVE_LLM is
-off or GEMINI_API_KEY is unset.
+off or ANTHROPIC_API_KEY is unset.
 """
 import json
 
@@ -40,7 +40,7 @@ class EvidenceExtractor:
         self.settings = get_settings()
 
     async def extract(self, company_domain: str, raw_signals: list[RawSignal]) -> EvidenceBatch:
-        if not self.settings.enable_live_llm or not self.settings.gemini_api_key:
+        if not self.settings.enable_live_llm or (not self.settings.anthropic_api_key and not self.settings.gemini_api_key):
             logger.info("evidence_extractor.stub_mode", domain=company_domain)
             return EvidenceBatch(company_domain=company_domain, items=[])
 
@@ -48,22 +48,19 @@ class EvidenceExtractor:
             return EvidenceBatch(company_domain=company_domain, items=[])
 
         try:
-            import google.genai as genai
-
-            client = genai.Client(api_key=self.settings.gemini_api_key)
+            from app.core.llm import generate_text
 
             signals_payload = [s.model_dump() for s in raw_signals]
             user_content = (
                 f"Company domain: {company_domain}\n\nRaw signals:\n"
                 f"{json.dumps(signals_payload, default=str)}"
             )
-            response = client.models.generate_content(
-                model=self.settings.gemini_model,
-                contents=[
-                    {"role": "user", "parts": [{"text": EXTRACTION_SYSTEM_PROMPT + "\n\n" + user_content}]}
-                ],
+            
+            response_text = await generate_text(
+                prompt=user_content,
+                system=EXTRACTION_SYSTEM_PROMPT,
+                max_tokens=4096
             )
-            response_text = response.text
             items = self._parse_response(response_text)
             return EvidenceBatch(company_domain=company_domain, items=items)
         except Exception as exc:  # noqa: BLE001

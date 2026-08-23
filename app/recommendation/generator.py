@@ -5,8 +5,9 @@ salesperson can act on. The bullet-point fields (fit_reasons,
 top_buying_signals, top_risks) are built deterministically straight from
 pillar reasons - no LLM involved, so they can never contain an invented
 fact. Only the prose fields (executive_summary, suggested_approach) use
-Gemini (Google), and only when ENABLE_LIVE_LLM + GEMINI_API_KEY are set; otherwise a
-deterministic template covers the same ground.
+Anthropic (Claude) or Gemini as fallback, and only when ENABLE_LIVE_LLM +
+at least one LLM API key is set; otherwise a deterministic template covers the
+same ground.
 
 `solution_match` ("best OxiQ offering") is left unset - it requires a
 product/offering catalog that hasn't been provided yet. Wiring it in later
@@ -94,7 +95,7 @@ class RecommendationGenerator:
         fit_reasons: list[str],
         top_risks: list[str],
     ) -> tuple[str, str]:
-        if self.settings.enable_live_llm and self.settings.gemini_api_key:
+        if self.settings.enable_live_llm and (self.settings.anthropic_api_key or self.settings.gemini_api_key):
             try:
                 return await self._generate_prose_live(company_domain, purchase_result, fit_reasons, top_risks)
             except Exception as exc:  # noqa: BLE001
@@ -146,10 +147,8 @@ class RecommendationGenerator:
         fit_reasons: list[str],
         top_risks: list[str],
     ) -> tuple[str, str]:
-        import google.genai as genai
+        from app.core.llm import generate_text
 
-        settings = get_settings()
-        client = genai.Client(api_key=settings.gemini_api_key)
         prompt = (
             f"Company: {company_domain}\n"
             f"Purchase score: {purchase_result.purchase_score}/100 "
@@ -163,11 +162,12 @@ class RecommendationGenerator:
             "or claim that isn't in the input. Return exactly two lines: "
             "'SUMMARY: <2-3 sentences>' then 'APPROACH: <1-2 sentences>'."
         )
-        response = client.models.generate_content(
-            model=settings.gemini_model,
-            contents=[{"role": "user", "parts": [{"text": system_instruction + "\n\n" + prompt}]}],
+        
+        text = await generate_text(
+            prompt=prompt,
+            system=system_instruction,
+            max_tokens=256
         )
-        text = response.text.strip()
 
         summary, approach = "", ""
         for line in text.splitlines():

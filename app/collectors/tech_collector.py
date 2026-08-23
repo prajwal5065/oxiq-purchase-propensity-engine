@@ -58,8 +58,19 @@ class TechCollector(BaseCollector):
 
         signals: list[RawSignal] = []
         errors: list[str] = []
+
+        # Guard: a domain with spaces is a company name, not a valid URL hostname
+        if " " in company_domain:
+            logger.warning("tech_collector.invalid_domain", domain=company_domain)
+            return CollectorResult(
+                company_domain=company_domain,
+                source=SignalSource.TECH,
+                signals=[],
+                is_live=False,
+                errors=[f"Invalid domain '{company_domain}' (contains spaces). Tech detection skipped."],
+                status=CollectorStatus.FAILED,
+            )
         
-        # 1. Primary: BuiltWith
         if self.settings.builtwith_api_key:
             try:
                 async with httpx.AsyncClient(timeout=10.0) as client:
