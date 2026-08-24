@@ -11,6 +11,7 @@ import { EvidenceCoverageSection } from "../components/EvidenceCoverageSection";
 import { EvidenceLog } from "../components/EvidenceLog";
 import { EvidenceSection } from "../components/EvidenceSection";
 import { ExplanationHeadline } from "../components/ExplanationHeadline";
+import { ExportReportButton } from "../components/ExportReportButton";
 import { JobsPanel } from "../components/JobsPanel";
 import { PillarExplanationCard } from "../components/PillarExplanationCard";
 import { PillarRadar } from "../components/PillarRadar";
@@ -20,24 +21,9 @@ import { SalesIntelligenceSection } from "../components/SalesIntelligenceSection
 import { ScoreDial } from "../components/ScoreDial";
 import { TechnologyPanel } from "../components/TechnologyPanel";
 import { WhyNowPanel } from "../components/WhyNowPanel";
+import type { DossierData } from "../lib/export";
 import { formatRelativeDate, priorityFromScore } from "../lib/format";
-import type {
-  AnalysisExplanation,
-  CompanySummary,
-  EvidenceRecord,
-  PillarScore,
-  RecommendationResult,
-} from "../types";
-
-interface DossierData {
-  company: CompanySummary;
-  pillars: PillarScore[];
-  purchaseScore: number;
-  purchaseConfidence: number;
-  recommendation: RecommendationResult | null;
-  explanation: AnalysisExplanation | null;
-  evidence: EvidenceRecord[];
-}
+import type { EvidenceRecord } from "../types";
 
 const NAV_ITEMS = [
   { id: "decision", label: "Final Decision" },
@@ -152,7 +138,10 @@ export function CompanyPage() {
             last processed {formatRelativeDate(data.company.last_processed_at)}
           </p>
         </div>
-        <PriorityStamp priority={priority} disqualified={disqualified} />
+        <div className="flex items-center gap-3">
+          <ExportReportButton dossier={data} />
+          <PriorityStamp priority={priority} disqualified={disqualified} />
+        </div>
       </div>
 
       <DossierNav items={NAV_ITEMS} />
