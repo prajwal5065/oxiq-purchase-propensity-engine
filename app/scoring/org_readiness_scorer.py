@@ -17,6 +17,20 @@ KEYWORDS = [
     "engineering team",
     "director of engineering",
     "chief ai officer",
+    # Organizational scale/build-out signals - the original list only
+    # recognized named leadership titles, so a company visibly growing its
+    # workforce (e.g. hundreds of open positions) never counted as an
+    # org-readiness signal even though large-scale hiring is real evidence
+    # an organization is being staffed up to execute.
+    "dedicated team",
+    "operations team",
+    "project team",
+    "center of excellence",
+    "job vacancies",
+    "open positions",
+    "hiring across",
+    "expanding workforce",
+    "new department",
 ]
 
 MAX_EXPECTED_SIGNALS = 3

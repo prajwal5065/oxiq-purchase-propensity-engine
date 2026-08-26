@@ -18,6 +18,21 @@ KEYWORDS = [
     "inefficient",
     "bottleneck",
     "data entry",
+    # Broader, vertical-agnostic "actively addressing an operational need"
+    # signals - the original list above only recognized AI/software-vendor
+    # -specific phrasing (e.g. "hiring AI engineer") and missed equally
+    # strong need signals from other verticals, such as a fleet operator
+    # modernizing or replacing legacy infrastructure.
+    "electrification",
+    "modernization",
+    "modernizing",
+    "digital transformation",
+    "legacy system",
+    "legacy infrastructure",
+    "replacing its",
+    "transitioning to",
+    "upgrading its",
+    "fleet renewal",
 ]
 
 MAX_EXPECTED_SIGNALS = 6

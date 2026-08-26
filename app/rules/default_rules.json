@@ -9,15 +9,15 @@
   "adjustments": [
     {
       "id": "low_capacity_penalty",
-      "description": "IF Capacity < 20 THEN PurchaseScore *= 0.5 - can't afford us regardless of interest.",
-      "condition": { "field": "capacity", "operator": "lt", "value": 20 },
+      "description": "IF Capacity < 20 AND Capacity was confidently assessed (not just missing evidence) THEN PurchaseScore *= 0.5 - can't afford us regardless of interest.",
+      "condition": { "field": "capacity_confident", "operator": "lt", "value": 20 },
       "action": "multiply",
       "action_value": 0.5
     },
     {
       "id": "low_need_penalty",
-      "description": "IF Need < 15 THEN PurchaseScore *= 0.6 - little evidence they have our problem at all.",
-      "condition": { "field": "need", "operator": "lt", "value": 15 },
+      "description": "IF Need < 15 AND Need was confidently assessed (not just missing evidence) THEN PurchaseScore *= 0.6 - real evidence they don't have our problem, not merely an absence of evidence.",
+      "condition": { "field": "need_confident", "operator": "lt", "value": 15 },
       "action": "multiply",
       "action_value": 0.6
     }

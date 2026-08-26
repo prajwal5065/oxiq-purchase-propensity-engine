@@ -21,6 +21,19 @@ KEYWORDS = [
     "artificial intelligence",
     "generative ai",
     "cloud-native",
+    # Technology-adoption signals that aren't tied to a specific software
+    # stack - the original list only recognized named developer tooling,
+    # so a company visibly modernizing (e.g. a fleet operator adopting EV/
+    # telematics/IoT technology) never registered here at all.
+    "digital transformation",
+    "iot",
+    "telematics",
+    "real-time tracking",
+    "connected vehicles",
+    "data-driven",
+    "smart technology",
+    "technology platform",
+    "electrification",
 ]
 
 MAX_EXPECTED_SIGNALS = 5
