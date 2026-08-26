@@ -46,11 +46,26 @@ KEYWORDS = [
     "open source",
     "github.com",
     "engineering team",
-    # industry fit
+    # industry fit / organizational sophistication - deliberately broad
+    # rather than locked to "software company". The original list here
+    # only recognized software/SaaS companies, so no other vertical could
+    # ever score industry fit at all, regardless of evidence. Absent a
+    # configured ICP, these signals proxy for "a large, professionally-run
+    # buying organization" across any industry. If OxiQ's actual ICP is a
+    # specific vertical (e.g. transit/fleet), prefer configuring that via
+    # `industry_priors` in app/rules/default_rules.json - the mechanism
+    # already exists for this and is more maintainable than keyword
+    # hardcoding - rather than adding vertical-specific terms here.
     "software company",
     "saas",
     "technology company",
     "digital-first",
+    "public company",
+    "government agency",
+    "regulated industry",
+    "enterprise organization",
+    "national operator",
+    "multi-site operations",
 ]
 
 MAX_EXPECTED_SIGNALS = 4

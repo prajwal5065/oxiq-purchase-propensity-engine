@@ -50,6 +50,15 @@ KEYWORDS = [
     "market capitalization",
     "technology investment",
     "invests in",
+    # Scale signals for non-headcount-reported organizations (e.g. asset-
+    # heavy operators like fleets/utilities, where "employees" may not be
+    # the number that's publicly reported, but fleet/asset size and hiring
+    # volume are an equally valid proxy for capacity).
+    "fleet of",
+    "vehicles",
+    "job vacancies",
+    "open positions",
+    "job openings",
 ]
 
 MAX_EXPECTED_SIGNALS = 4

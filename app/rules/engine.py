@@ -79,6 +79,14 @@ class RuleEngine:
     @staticmethod
     def _build_context(pillar_scores: list[PillarScore]) -> dict[str, float]:
         context = {p.score_type.value: p.score for p in pillar_scores}
+        # Confidence-gated companion fields for rules that should only fire
+        # on a CONFIDENTLY low score, not an absence of evidence ("missing
+        # evidence != negative evidence"). When a pillar's confidence is 0
+        # (nothing matched), its "<pillar>_confident" reads as 100 - a
+        # value that can never trip a "< threshold" penalty rule - instead
+        # of the real (but evidentially meaningless) 0 score.
+        for p in pillar_scores:
+            context[f"{p.score_type.value}_confident"] = p.score if p.confidence > 0 else 100.0
         non_zero_confidence = sum(1 for p in pillar_scores if p.confidence > 0)
         context["overall_confidence"] = (
             round(non_zero_confidence / len(pillar_scores), 2) if pillar_scores else 0.0

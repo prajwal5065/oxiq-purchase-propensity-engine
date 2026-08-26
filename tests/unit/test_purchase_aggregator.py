@@ -25,6 +25,10 @@ def test_weighted_sum_matches_spec_weights():
 
 
 def test_only_need_pillar_scores_reflects_its_30pct_weight():
+    """Capacity/Urgency/etc. here are 0 with confidence=0 - no evidence was
+    found, not evidence of a genuine problem. That must NOT trip the "low
+    capacity" penalty (missing evidence != negative evidence) - the result
+    should be exactly Need's 30% weighted contribution, unpenalized."""
     pillars = [
         pillar(ScoreType.NEED, 100),
         pillar(ScoreType.URGENCY, 0, confidence=0),
@@ -34,10 +38,28 @@ def test_only_need_pillar_scores_reflects_its_30pct_weight():
         pillar(ScoreType.WINNABILITY, 0, confidence=0),
     ]
     result = PurchaseAggregator().aggregate("acme.com", pillars)
-    # Weighted sum is 30 (Need's 30% weight), but Capacity=0 also trips the Rule
-    # Engine's "low capacity" adjustment (x0.5), landing on 15.
-    assert result.purchase_score == pytest.approx(15.0, abs=0.5)
+    assert result.purchase_score == pytest.approx(30.0, abs=0.5)
     assert "capacity" in result.pillar_scores[2].score_type.value
+
+
+def test_confidently_low_capacity_still_triggers_penalty():
+    """The flip side: when Capacity is genuinely, confidently assessed as
+    low (real evidence, not an absence of it), the penalty must still
+    fire - this isn't a blanket exemption for low scores, only for
+    unevidenced ones."""
+    pillars = [
+        pillar(ScoreType.NEED, 100),
+        pillar(ScoreType.URGENCY, 0, confidence=0),
+        pillar(ScoreType.CAPACITY, 5, confidence=0.8, reasons=["Tiny team: 3 employees"]),
+        pillar(ScoreType.DIGITAL_MATURITY, 0, confidence=0),
+        pillar(ScoreType.ORG_READINESS, 0, confidence=0),
+        pillar(ScoreType.WINNABILITY, 0, confidence=0),
+    ]
+    result = PurchaseAggregator().aggregate("acme.com", pillars)
+    # Weighted sum: Need 30 + Capacity 5*0.15=0.75 = 30.75, halved by the
+    # confidently-low-capacity penalty.
+    assert result.purchase_score == pytest.approx(15.4, abs=0.5)
+    assert result.purchase_score < 30.0
 
 
 def test_disqualified_when_no_evidence_anywhere():

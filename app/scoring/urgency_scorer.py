@@ -32,6 +32,15 @@ KEYWORDS = [
     "ai adoption",
     "partnership",
     "partners with",
+    # Order/contract/deployment events - time-sensitive procurement or
+    # rollout activity the original list didn't recognize unless it
+    # happened to also say "expansion" or "partnership".
+    "awarded contract",
+    "wins contract",
+    "places order",
+    "deploys",
+    "deployment of",
+    "rolls out",
 ]
 
 # Sum of decay weights at which urgency saturates to 100. ~3 fully-fresh

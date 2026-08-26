@@ -25,6 +25,12 @@ _TRIGGER_PHRASES: dict[str, list[str]] = {
     "product_launch": ["product launch", "unveils", "launches"],
     "acquisition": ["acquisition", "acquires", "acquired"],
     "hiring_spike": ["hiring spike", "hiring surge", "expanding team"],
+    # Order/contract-award and deployment/rollout events - a company that
+    # just placed a large order or is actively deploying something is
+    # exactly the kind of dated, time-sensitive event this engine exists
+    # to surface, but neither was represented in any group above.
+    "deployment": ["deploys", "deployment of", "rolls out", "rollout of", "delivery of"],
+    "order_or_contract": ["places order", "awarded contract", "wins contract", "order for"],
 }
 
 # A trigger only counts as "why now" if it's at least this fresh (matches
