@@ -115,6 +115,10 @@ class DisqualificationExplanation(BaseModel):
     data_quality_limitations: list[str] = Field(default_factory=list)
     confidence: float = Field(..., ge=0.0, le=1.0)
     recommended_next_action: str
+    applied_adjustments: list[str] = Field(
+        default_factory=list,
+        description="Rule Engine adjustments that decreased the final score below the raw weighted pillar sum.",
+    )
 
 
 class AnalysisExplanation(BaseModel):

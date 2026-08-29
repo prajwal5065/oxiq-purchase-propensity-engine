@@ -44,7 +44,16 @@ MAX_MISSING_SIGNALS = 5
 class PillarExplainer:
     def explain(self, pillar_score: PillarScore, evidence: list[EvidenceItem]) -> PillarExplanation:
         keywords = _PILLAR_KEYWORDS.get(pillar_score.score_type, [])
-        matched = match_evidence(evidence, keywords)
+        if pillar_score.score_type == ScoreType.DIGITAL_MATURITY:
+            # Digital Maturity credits structured technology evidence
+            # (technology_name) in addition to narrative keywords - use the
+            # scorer's own matching logic rather than the generic
+            # keyword-only path below, or this explanation would drift
+            # from the score it's supposed to explain. `keywords` (above)
+            # is still needed for the missing-expected-signals check.
+            matched = digital_maturity_scorer.matched_evidence(evidence)
+        else:
+            matched = match_evidence(evidence, keywords)
 
         contributions = self._build_contributions(pillar_score, matched)
         missing = self._missing_signals(keywords, matched)

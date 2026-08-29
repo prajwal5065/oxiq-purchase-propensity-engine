@@ -68,6 +68,21 @@ export function DisqualificationPanel({
         </div>
       )}
 
+      {disqualification.applied_adjustments.length > 0 && (
+        <div className="mb-4">
+          <p className="font-mono text-[10px] uppercase tracking-wide text-paper-faint mb-1.5">
+            Score adjustments applied
+          </p>
+          <ul className="space-y-1">
+            {disqualification.applied_adjustments.map((item, i) => (
+              <li key={i} className="text-[13px] text-amber/90">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {disqualification.supporting_evidence.length > 0 && (
         <div className="mb-4">
           <p className="font-mono text-[10px] uppercase tracking-wide text-paper-faint mb-1.5">Supporting evidence</p>

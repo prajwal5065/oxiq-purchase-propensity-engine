@@ -216,7 +216,14 @@ def generate_company_docx(company: Company, explanation: AnalysisExplanation) ->
     run_p_sum = p_summary.add_run(f"Headline: {explanation.headline}\n")
     run_p_sum.bold = True
     p_summary.add_run(f"Reasoning: {explanation.disqualification.primary_reason}")
-    
+
+    if explanation.disqualification.applied_adjustments:
+        p_adj = doc.add_paragraph()
+        p_adj.paragraph_format.space_after = Pt(12)
+        run_adj_lbl = p_adj.add_run("Score Adjustments Applied: ")
+        run_adj_lbl.bold = True
+        p_adj.add_run("; ".join(explanation.disqualification.applied_adjustments))
+
     # 5. Executive Recommendations
     add_heading_styled(doc, "Executive Summary & Outreach Strategy", level=1)
     

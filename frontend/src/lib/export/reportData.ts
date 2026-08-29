@@ -103,6 +103,7 @@ export interface ReportData {
     headline: string | null;
     primaryReason: string | null;
     secondaryReasons: string[];
+    appliedAdjustments: string[];
   };
   confidence: {
     overall: string;
@@ -186,6 +187,7 @@ export function buildReportData(dossier: DossierData): ReportData {
       headline: explanation?.headline ?? null,
       primaryReason: disqualification?.primary_reason ?? null,
       secondaryReasons: disqualification?.secondary_reasons ?? [],
+      appliedAdjustments: disqualification?.applied_adjustments ?? [],
     },
     confidence: confidenceExplanation
       ? {

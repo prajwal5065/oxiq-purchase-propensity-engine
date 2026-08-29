@@ -15,6 +15,7 @@ This is intentionally simple keyword/heuristic matching, not an LLM call -
 normalization should be cheap, deterministic, and never itself invent a
 fact the extractor didn't already ground.
 """
+import re
 from datetime import datetime
 
 from app.models.signal import SignalSource
@@ -121,6 +122,11 @@ class EvidenceNormalizer:
         url_to_jobs_signal = {
             signal.url: signal for signal in raw_signals if signal.url and signal.source == SignalSource.JOBS
         }
+        url_to_profile_signal = {
+            signal.url: signal
+            for signal in raw_signals
+            if signal.url and signal.source == SignalSource.COMPANY_PROFILE
+        }
 
         seen: set[tuple[str, str]] = set()
         normalized: list[EvidenceItem] = []
@@ -147,6 +153,10 @@ class EvidenceNormalizer:
             jobs_signal = url_to_jobs_signal.get(item_url) if item_url else None
             if jobs_signal is not None:
                 update.update(self._job_fields_from(jobs_signal))
+
+            profile_signal = url_to_profile_signal.get(item_url) if item_url else None
+            if profile_signal is not None:
+                update.update(self._company_profile_fields_from(profile_signal))
 
             enriched = item.model_copy(update=update)
             normalized.append(enriched)
@@ -188,6 +198,50 @@ class EvidenceNormalizer:
             "job_ats_provider": payload.get("provider"),
             "job_posting_date": job_posting_date,
         }
+
+    @staticmethod
+    def _company_profile_fields_from(signal: RawSignal) -> dict:
+        """Structured employee_count/founding_year from the Company Profile
+        Collector's RawSignal.payload - either the homepage's schema.org
+        JSON-LD (`numberOfEmployees`/`foundingDate`) or Wikidata
+        (`employee_count`/`founding_date` - see
+        app/collectors/company_profile_collector.py for both shapes). Both
+        providers are normalized to the same plain int here so
+        ContradictionDetector can compare "two sources' employee count" as
+        one field regardless of which provider reported it or how."""
+        payload = signal.payload
+        raw_employees = payload.get("numberOfEmployees", payload.get("employee_count"))
+        raw_founding = payload.get("foundingDate", payload.get("founding_date"))
+        return {
+            "employee_count": EvidenceNormalizer._parse_employee_count(raw_employees),
+            "founding_year": EvidenceNormalizer._parse_founding_year(raw_founding),
+        }
+
+    @staticmethod
+    def _parse_employee_count(raw: object) -> int | None:
+        if raw is None:
+            return None
+        if isinstance(raw, dict):
+            raw = raw.get("value") or raw.get("amount")
+        if raw is None:
+            return None
+        try:
+            # Wikidata quantity amounts arrive as strings like "+500".
+            return int(float(str(raw).lstrip("+")))
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _parse_founding_year(raw: object) -> int | None:
+        if raw is None:
+            return None
+        match = re.search(r"(\d{4})", str(raw))
+        if not match:
+            return None
+        year = int(match.group(1))
+        if 1600 <= year <= datetime.now().year:
+            return year
+        return None
 
     @staticmethod
     def _infer_collector(source: str) -> str:

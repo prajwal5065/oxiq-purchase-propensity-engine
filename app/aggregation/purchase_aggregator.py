@@ -62,6 +62,7 @@ class PurchaseAggregator:
             evidence_summary=evidence_summary,
             disqualified=rule_result.disqualified,
             disqualified_reason=rule_result.disqualified_reason,
+            applied_adjustments=rule_result.applied_adjustments,
         )
 
     def _weighted_sum(self, pillar_scores: list[PillarScore]) -> float:

@@ -58,6 +58,7 @@ class DisqualificationEngine:
             data_quality_limitations=[],
             confidence=purchase_result.confidence,
             recommended_next_action="Proceed with standard outreach prioritization.",
+            applied_adjustments=purchase_result.applied_adjustments,
         )
 
     def _categorize(self, coverage: EvidenceCoverage) -> DisqualificationCategory:
@@ -121,6 +122,7 @@ class DisqualificationEngine:
             data_quality_limitations=data_quality_limitations,
             confidence=purchase_result.confidence,
             recommended_next_action=next_action,
+            applied_adjustments=purchase_result.applied_adjustments,
         )
 
     @staticmethod
