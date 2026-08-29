@@ -24,7 +24,7 @@ existing text fields, never a replacement for them.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Float, String, Text, Uuid, func
+from sqlalchemy import DateTime, ForeignKey, Float, Integer, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -60,6 +60,14 @@ class Evidence(Base):
     # when the extractor's item couldn't be matched to a raw tech signal.
     technology_name: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     technology_provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # Structured company-profile fields - populated by EvidenceNormalizer
+    # from the Company Profile Collector's RawSignal.payload (homepage
+    # schema.org JSON-LD and/or Wikidata). Null for non-company-profile
+    # evidence. See ContradictionDetector for why two sources reporting
+    # different values here matters.
+    employee_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    founding_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Structured Jobs fields - populated the same way from the Jobs
     # Collector's RawSignal.payload (Greenhouse/Lever - see

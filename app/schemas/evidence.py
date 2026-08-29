@@ -63,6 +63,19 @@ class EvidenceItem(BaseModel):
         default=None, description="Which tech-detection provider found it: 'builtwith' or 'wappalyzer'."
     )
 
+    # Structured company-profile fields - set by EvidenceNormalizer from the
+    # Company Profile Collector's RawSignal.payload (homepage schema.org
+    # JSON-LD and/or Wikidata - see app/collectors/company_profile_collector.py).
+    # Two independently-sourced values for the same field are exactly what
+    # ContradictionDetector's structured-fact checks compare (see that
+    # module). Null for evidence that isn't a company-profile fact.
+    employee_count: int | None = Field(
+        default=None, description="Reported headcount, parsed from schema.org numberOfEmployees or Wikidata P1128."
+    )
+    founding_year: int | None = Field(
+        default=None, description="Reported founding year, parsed from schema.org foundingDate or Wikidata P571."
+    )
+
     # Structured Jobs fields - set the same way from the Jobs Collector's
     # RawSignal.payload (Greenhouse/Lever). Null for non-jobs evidence.
     job_title: str | None = Field(default=None, description="The job posting's title, e.g. 'Senior ML Engineer'.")
@@ -105,6 +118,8 @@ class EvidenceRecord(BaseModel):
     published_at: datetime | None
     technology_name: str | None
     technology_provider: str | None
+    employee_count: int | None
+    founding_year: int | None
     job_title: str | None
     job_department: str | None
     job_location: str | None

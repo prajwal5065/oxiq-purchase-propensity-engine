@@ -164,6 +164,7 @@ export interface DisqualificationExplanation {
   data_quality_limitations: string[];
   confidence: number;
   recommended_next_action: string;
+  applied_adjustments: string[];
 }
 
 // --- Decision Intelligence -------------------------------------------------

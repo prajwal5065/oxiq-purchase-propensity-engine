@@ -52,6 +52,28 @@ class AnalysisExplainer:
             collector_results=collector_results,
             total_evidence=len(normalized_evidence),
         )
+        # ConfidenceEngine.explain() computes a data-collection-quality
+        # confidence from coverage/freshness/diversity factors alone; the
+        # canonical analysis confidence is purchase_result.confidence
+        # (pillar-weighted, then discounted by the Rule Engine's
+        # confidence_factor - see PurchaseAggregator). Those are two
+        # different lenses on "how sure are we," and showing both
+        # unreconciled numbers as "the confidence" in the same report is
+        # exactly the inconsistency this override exists to prevent. The
+        # factor breakdown above stays as-is (still useful context for
+        # *why* confidence is what it is); only the headline number/level/
+        # summary are reconciled to the one canonical value.
+        confidence_explanation = confidence_explanation.model_copy(
+            update={
+                "overall_confidence": purchase_result.confidence,
+                "level": self.confidence_engine._level(purchase_result.confidence),
+                "summary": self.confidence_engine._summarize(
+                    self.confidence_engine._level(purchase_result.confidence),
+                    purchase_result.confidence,
+                    confidence_explanation.factors,
+                ),
+            }
+        )
         pillar_explanations = [
             self.pillar_explainer.explain(pillar, normalized_evidence) for pillar in purchase_result.pillar_scores
         ]

@@ -19,3 +19,12 @@ class PurchaseScoreResult(BaseModel):
     evidence_summary: list[str] = Field(default_factory=list)
     disqualified: bool = False
     disqualified_reason: str | None = None
+    applied_adjustments: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Rule Engine adjustments that changed the score away from the raw "
+            "weighted pillar sum (e.g. the low-capacity or low-need penalty) - "
+            "surfaced so the report can show what decreased the final score, "
+            "not just the pillar contributions that increased it."
+        ),
+    )
