@@ -169,7 +169,7 @@ export interface DisqualificationExplanation {
 
 // --- Decision Intelligence -------------------------------------------------
 
-export type FreshnessLabel = "very_fresh" | "recent" | "aging" | "stale" | "unknown";
+export type FreshnessLabel = "very_fresh" | "recent" | "aging" | "stale" | "historical" | "unknown";
 
 export type BuyingIntentLevel = "strong" | "moderate" | "weak" | "none" | "insufficient_data";
 

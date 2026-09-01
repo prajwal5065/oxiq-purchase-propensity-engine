@@ -38,6 +38,12 @@ _STRUCTURED_FACT_FIELDS: list[tuple[str, str, ContradictionSeverity, float]] = [
     ("founding_year", "founding year", ContradictionSeverity.HIGH, 0.0),
 ]
 
+# Same idea for text-valued facts, compared with normalized-string equality
+# instead of numeric tolerance. Deliberately scoped to `location_kind ==
+# "headquarters"` only (see `_detect_headquarters_conflicts`) - an 'office'
+# item is a hiring/facility presence, not a headquarters claim, so it must
+# never be compared here as if it were one.
+
 # (theme, positive phrases, negative phrases, severity, description)
 _CONTRADICTION_THEMES: list[tuple[str, list[str], list[str], ContradictionSeverity, str]] = [
     (
@@ -89,6 +95,7 @@ class ContradictionDetector:
                 )
 
         findings.extend(self._detect_structured_fact_conflicts(evidence))
+        findings.extend(self._detect_headquarters_conflicts(evidence))
 
         return ContradictionReport(
             has_contradictions=bool(findings),
@@ -135,6 +142,50 @@ class ContradictionDetector:
                         )
                     )
         return findings
+
+    @classmethod
+    def _detect_headquarters_conflicts(cls, evidence: list[EvidenceItem]) -> list[ContradictionFinding]:
+        """Same idea as `_detect_structured_fact_conflicts`, for the one
+        text-valued structured fact: headquarters. Scoped to
+        `location_kind == "headquarters"` items only - a job posting's
+        `location_kind == "office"` is a hiring/facility presence, not a
+        headquarters claim, and must never be pulled into this comparison
+        (that's precisely the conflation this check exists to prevent
+        elsewhere in the report)."""
+        headquarters_items = [
+            item for item in evidence if item.location_kind == "headquarters" and item.location_name
+        ]
+        if len(headquarters_items) < 2:
+            return []
+
+        findings: list[ContradictionFinding] = []
+        for i in range(len(headquarters_items)):
+            item_a = headquarters_items[i]
+            for item_b in headquarters_items[i + 1 :]:
+                if cls._same_place(item_a.location_name, item_b.location_name):
+                    continue
+                findings.append(
+                    ContradictionFinding(
+                        theme="headquarters_conflict",
+                        severity=ContradictionSeverity.MEDIUM,
+                        description=(
+                            f"Sources disagree on headquarters location: {item_a.source} reports "
+                            f"'{item_a.location_name}' while {item_b.source} reports '{item_b.location_name}'."
+                        ),
+                        evidence_a=cls._ref(item_a),
+                        evidence_b=cls._ref(item_b),
+                    )
+                )
+        return findings
+
+    @staticmethod
+    def _same_place(name_a: str, name_b: str) -> bool:
+        """Conservative equality: same normalized text, or one is a
+        substring of the other (e.g. 'Pune' vs 'Pune, Maharashtra, India'
+        from two sources reporting at different granularity - not a real
+        disagreement)."""
+        norm_a, norm_b = name_a.strip().lower(), name_b.strip().lower()
+        return norm_a == norm_b or norm_a in norm_b or norm_b in norm_a
 
     @staticmethod
     def _match(evidence: list[EvidenceItem], phrases: list[str]) -> list[EvidenceItem]:

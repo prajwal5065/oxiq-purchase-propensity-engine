@@ -68,6 +68,8 @@ class Evidence(Base):
     # different values here matters.
     employee_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     founding_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    location_kind: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    location_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Structured Jobs fields - populated the same way from the Jobs
     # Collector's RawSignal.payload (Greenhouse/Lever - see
