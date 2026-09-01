@@ -329,3 +329,100 @@ def test_normalizer_does_not_cross_contaminate_tech_and_job_fields():
 
     assert tech_item.job_title is None
     assert job_item.technology_name is None
+
+
+# --- Structured company-profile fields (employee_count/founding_year/location) ---
+
+
+def test_normalizer_attaches_employee_count_and_founding_year_from_jsonld():
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.COMPANY_PROFILE,
+            category="industry_profile",
+            payload={"numberOfEmployees": "500", "foundingDate": "2015-03-01"},
+            url="https://acme.com",
+        )
+    ]
+    items = [
+        make_item("Company profile", "Acme has 500 employees, founded 2015", source="Company Profile").model_copy(
+            update={"url": "https://acme.com"}
+        )
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    assert normalized[0].employee_count == 500
+    assert normalized[0].founding_year == 2015
+
+
+def test_normalizer_attaches_employee_count_and_founding_year_from_wikidata():
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.COMPANY_PROFILE,
+            category="company_registry",
+            payload={"wikidata_id": "Q123", "employee_count": "+5000", "founding_date": "+2009-01-01T00:00:00Z"},
+            url="https://www.wikidata.org/wiki/Q123",
+        )
+    ]
+    items = [
+        make_item("Company profile", "per Wikidata", source="Wikidata").model_copy(
+            update={"url": "https://www.wikidata.org/wiki/Q123"}
+        )
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    assert normalized[0].employee_count == 5000
+    assert normalized[0].founding_year == 2009
+
+
+def test_normalizer_tags_jsonld_address_as_headquarters():
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.COMPANY_PROFILE,
+            category="industry_profile",
+            payload={"headquarters": {"addressLocality": "Pune", "addressCountry": "IN"}},
+            url="https://acme.com",
+        )
+    ]
+    items = [
+        make_item("Company address", "Acme is located at...", source="Company Profile").model_copy(
+            update={"url": "https://acme.com"}
+        )
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    assert normalized[0].location_kind == "headquarters"
+    assert normalized[0].location_name == "Pune, IN"
+    assert normalized[0].signal_label.startswith("Headquarters:")
+
+
+def test_normalizer_tags_job_posting_location_as_office_not_headquarters():
+    """The core regression this guards: a job posting's location must
+    never be tagged (or read downstream) as a headquarters claim."""
+    raw_signals = [
+        RawSignal(
+            source=SignalSource.JOBS,
+            category="engineering_hiring",
+            payload={
+                "title": "Backend Engineer",
+                "department": "Eng",
+                "location": "Pune, India",
+                "posted_at": None,
+                "provider": "greenhouse",
+                "description_snippet": "...",
+            },
+            url="https://boards.greenhouse.io/acme/jobs/9",
+        )
+    ]
+    items = [
+        make_item("Hiring Backend Engineer", "Acme is hiring in Pune", source="Greenhouse").model_copy(
+            update={"url": "https://boards.greenhouse.io/acme/jobs/9"}
+        )
+    ]
+    normalized = EvidenceNormalizer().normalize(raw_signals=raw_signals, items=items)
+    assert normalized[0].location_kind == "office"
+    assert normalized[0].location_name == "Pune, India"
+    assert normalized[0].signal_label.startswith("Office/facility presence:")
+
+
+def test_normalizer_leaves_location_fields_null_when_no_location_data():
+    items = [make_item("Something", "no location info here", source="Website")]
+    normalized = EvidenceNormalizer().normalize(raw_signals=[], items=items)
+    assert normalized[0].location_kind is None
+    assert normalized[0].location_name is None

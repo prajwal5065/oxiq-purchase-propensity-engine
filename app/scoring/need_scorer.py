@@ -3,7 +3,7 @@ Are they investing in AI?
 """
 from app.models.score import ScoreType
 from app.scoring.base import BaseScoringAgent
-from app.scoring.keyword_matcher import match_evidence, weighted_score
+from app.scoring.keyword_matcher import freshness_weighted_count, match_evidence, weighted_score
 from app.schemas.evidence import EvidenceItem
 from app.schemas.score import PillarScore
 
@@ -45,7 +45,7 @@ class NeedScoringAgent(BaseScoringAgent):
         matched = match_evidence(evidence, KEYWORDS)
         return PillarScore(
             score_type=self.score_type,
-            score=weighted_score(len(matched), MAX_EXPECTED_SIGNALS),
+            score=weighted_score(freshness_weighted_count(matched), MAX_EXPECTED_SIGNALS),
             confidence=self._confidence_from_evidence(matched),
             reasons=[f"{e.signal_label}: {e.excerpt}" for e in matched],
         )

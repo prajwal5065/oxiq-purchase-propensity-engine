@@ -14,7 +14,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-FreshnessLabelLiteral = Literal["very_fresh", "recent", "aging", "stale", "unknown"]
+FreshnessLabelLiteral = Literal["very_fresh", "recent", "aging", "stale", "historical", "unknown"]
 
 
 class FreshnessAssessment(BaseModel):

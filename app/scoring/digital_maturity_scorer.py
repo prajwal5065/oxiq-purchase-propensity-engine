@@ -19,7 +19,7 @@ what the Technology panel showed for the same company: the panel reads
 """
 from app.models.score import ScoreType
 from app.scoring.base import BaseScoringAgent
-from app.scoring.keyword_matcher import dedupe_events, match_evidence, weighted_score
+from app.scoring.keyword_matcher import dedupe_events, freshness_weighted_count, match_evidence, weighted_score
 from app.schemas.evidence import EvidenceItem
 from app.schemas.score import PillarScore
 
@@ -81,9 +81,13 @@ class DigitalMaturityScoringAgent(BaseScoringAgent):
 
         # Count distinct named technologies, not raw evidence rows - three
         # articles all mentioning "AWS" is one signal (AWS), not three.
+        # Structured detections aren't freshness-discounted the same way
+        # narrative mentions are: a tech-fingerprint scan observes what's
+        # live on the site *now*, so it isn't "old evidence" the way a
+        # years-old news mention of a stack choice is.
         distinct_technologies = {e.technology_name for e in matched if e.technology_name}
         narrative_only = [e for e in matched if e.technology_name is None]
-        signal_count = len(distinct_technologies) + len(narrative_only)
+        signal_count = len(distinct_technologies) + freshness_weighted_count(narrative_only)
 
         reasons = [f"Technology detected: {name}" for name in sorted(distinct_technologies)] + [
             f"{e.signal_label}: {e.excerpt}" for e in narrative_only

@@ -9,6 +9,7 @@ interface.
 import re
 
 from app.schemas.evidence import EvidenceItem
+from app.scoring.time_decay import decay_weight
 
 _WORD_RE = re.compile(r"[a-z0-9]+")
 _STOPWORDS = {
@@ -99,16 +100,34 @@ def dedupe_events(
             continue
         best = max(group, key=lambda e: e.confidence)
         other_sources = sorted({e.source for e in group if e.source != best.source})
+        update: dict = {}
         if other_sources:
             shown = ", ".join(other_sources[:3])
             suffix = f" (also reported by {shown}{', …' if len(other_sources) > 3 else ''})"
-            best = best.model_copy(update={"signal_label": f"{best.signal_label}{suffix}"})
-        representatives.append(best)
+            update["signal_label"] = f"{best.signal_label}{suffix}"
+            # Corroboration: independent sources agreeing on the same
+            # underlying event is itself evidence the fact is real, not
+            # just one outlet's error - a small, capped confidence bump
+            # per independent extra source (not per raw evidence row,
+            # which is what the pre-dedup count would otherwise reward).
+            update["confidence"] = round(min(1.0, best.confidence + 0.05 * min(len(other_sources), 3)), 2)
+        representatives.append(best.model_copy(update=update) if update else best)
     return representatives
 
 
-def weighted_score(matched_count: int, max_expected: int) -> float:
+def weighted_score(matched_count: float, max_expected: int) -> float:
     """Map a matched-signal count to a 0-100 score, saturating at max_expected."""
     if max_expected <= 0:
         return 0.0
     return round(min(matched_count / max_expected, 1.0) * 100, 1)
+
+
+def freshness_weighted_count(matched: list[EvidenceItem]) -> float:
+    """Sum of each item's age-decay weight, rather than a flat count of
+    matched evidence - so a pillar's saturation point is reached by recent
+    signal, not by however many old mentions happen to exist. Mirrors the
+    Urgency scorer's original decay-weighted counting, generalized to every
+    scorer: an evidence item from 2016-2019 (time_decay's "historical"
+    bucket) contributes ~0.05 toward saturation instead of a full 1.0, so
+    stale evidence alone can no longer drive a pillar to its ceiling."""
+    return sum(decay_weight(item.published_at) for item in matched)
