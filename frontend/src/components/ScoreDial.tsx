@@ -14,7 +14,7 @@ export function ScoreDial({
 }) {
   const clamped = Math.max(0, Math.min(100, score));
   const offset = CIRCUMFERENCE * (1 - clamped / 100);
-  const color = disqualified ? "#E4636F" : "#3ED6C4";
+  const color = disqualified ? "#C81E3A" : "#00C9A7";
 
   return (
     <div className="relative" style={{ width: SIZE, height: SIZE }}>
@@ -24,7 +24,7 @@ export function ScoreDial({
           cy={SIZE / 2}
           r={RADIUS}
           fill="none"
-          stroke="#2A323C"
+          stroke="#E4E2DC"
           strokeWidth={STROKE}
         />
         <circle

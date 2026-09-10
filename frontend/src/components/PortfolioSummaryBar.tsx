@@ -7,7 +7,7 @@ function StatBlock({ label, value, color = "text-paper" }: { label: string; valu
   return (
     <div>
       <p className="font-mono text-[10px] uppercase tracking-widest text-paper-faint mb-1">{label}</p>
-      <p className={`font-display text-2xl ${color}`}>{value}</p>
+      <p className={`font-display text-2xl font-semibold ${color}`}>{value}</p>
     </div>
   );
 }

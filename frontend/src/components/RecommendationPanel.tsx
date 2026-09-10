@@ -12,7 +12,7 @@ export function RecommendationPanel({
   return (
     <div className="border border-ink-600 bg-ink-800 rounded-sm p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
-        <h3 className="font-display text-lg text-paper">Field brief</h3>
+        <h3 className="font-display text-lg font-semibold text-paper">Field brief</h3>
         <PriorityStamp priority={recommendation.contact_priority} disqualified={disqualified} size="sm" />
       </div>
 
