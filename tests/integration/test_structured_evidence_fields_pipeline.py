@@ -267,8 +267,12 @@ async def test_job_fields_flow_from_collector_to_api_schema(monkeypatch):
     assert job_item.job_location == "Remote"
     assert job_item.job_ats_provider == "greenhouse"
     assert job_item.job_posting_date is not None
-    # Original text fields untouched.
-    assert job_item.signal_label == "Machine Learning Engineer"
+    assert job_item.location_kind == "office"
+    assert job_item.location_name == "Remote"
+    # signal_label is prefixed to distinguish an office/facility presence
+    # from a headquarters claim (see EvidenceNormalizer and
+    # ContradictionDetector); excerpt itself is untouched.
+    assert job_item.signal_label == "Office/facility presence: Machine Learning Engineer"
 
     # Stage 4: persist via EvidenceRepository, then read back
     session_factory = await _make_session_factory()

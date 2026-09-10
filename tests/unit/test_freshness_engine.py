@@ -31,11 +31,18 @@ def test_classify_labels_within_a_year_as_aging():
     assert weight == 0.4
 
 
-def test_classify_labels_older_than_a_year_as_stale():
+def test_classify_labels_one_to_two_years_as_stale():
+    now = datetime(2026, 1, 10, tzinfo=UTC)
+    label, weight = classify(now - timedelta(days=500), now=now)
+    assert label == "stale"
+    assert weight == 0.15
+
+
+def test_classify_labels_older_than_two_years_as_historical():
     now = datetime(2026, 1, 10, tzinfo=UTC)
     label, weight = classify(now - timedelta(days=800), now=now)
-    assert label == "stale"
-    assert weight == 0.1
+    assert label == "historical"
+    assert weight == 0.05
 
 
 def test_classify_labels_missing_date_as_unknown_not_fresh_or_stale():

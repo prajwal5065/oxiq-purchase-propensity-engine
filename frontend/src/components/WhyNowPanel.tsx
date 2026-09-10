@@ -6,6 +6,7 @@ const FRESHNESS_COLOR: Record<string, string> = {
   recent: "text-signal",
   aging: "text-amber",
   stale: "text-paper-faint",
+  historical: "text-paper-faint",
   unknown: "text-paper-faint",
 };
 

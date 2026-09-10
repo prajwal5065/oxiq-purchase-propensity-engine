@@ -73,3 +73,87 @@ def test_summary_mentions_contradiction_count():
     ]
     report = ContradictionDetector().detect(evidence)
     assert "1" in report.summary
+
+
+def _profile_evidence(source, employee_count=None, founding_year=None, location_kind=None, location_name=None):
+    item = EvidenceItem(signal_label="Company profile", excerpt="company facts", source=source, confidence=0.9)
+    return item.model_copy(
+        update={
+            "employee_count": employee_count,
+            "founding_year": founding_year,
+            "location_kind": location_kind,
+            "location_name": location_name,
+        }
+    )
+
+
+def test_detects_employee_count_conflict_beyond_tolerance():
+    evidence = [
+        _profile_evidence("Homepage", employee_count=500),
+        _profile_evidence("Wikidata", employee_count=5000),
+    ]
+    report = ContradictionDetector().detect(evidence)
+    assert any(f.theme == "employee_count_conflict" for f in report.findings)
+
+
+def test_does_not_flag_employee_count_within_tolerance():
+    evidence = [
+        _profile_evidence("Homepage", employee_count=500),
+        _profile_evidence("Wikidata", employee_count=520),
+    ]
+    report = ContradictionDetector().detect(evidence)
+    assert not any(f.theme == "employee_count_conflict" for f in report.findings)
+
+
+def test_does_not_flag_employee_count_with_only_one_source():
+    evidence = [_profile_evidence("Homepage", employee_count=500)]
+    report = ContradictionDetector().detect(evidence)
+    assert report.has_contradictions is False
+
+
+def test_detects_founding_year_conflict():
+    evidence = [
+        _profile_evidence("Homepage", founding_year=2015),
+        _profile_evidence("Wikidata", founding_year=2009),
+    ]
+    report = ContradictionDetector().detect(evidence)
+    assert any(f.theme == "founding_year_conflict" for f in report.findings)
+
+
+def test_founding_year_and_employee_count_never_compared_against_each_other():
+    """A field is only ever compared against itself - an employee_count
+    value is never treated as if it disagreed with a founding_year value
+    just because both are numbers on the same evidence item."""
+    evidence = [_profile_evidence("Homepage", employee_count=2015, founding_year=None)]
+    report = ContradictionDetector().detect(evidence)
+    assert report.has_contradictions is False
+
+
+def test_detects_headquarters_conflict():
+    evidence = [
+        _profile_evidence("Homepage", location_kind="headquarters", location_name="Mumbai, India"),
+        _profile_evidence("Wikidata", location_kind="headquarters", location_name="Pune, India"),
+    ]
+    report = ContradictionDetector().detect(evidence)
+    assert any(f.theme == "headquarters_conflict" for f in report.findings)
+
+
+def test_does_not_flag_headquarters_when_names_are_the_same_place_at_different_granularity():
+    evidence = [
+        _profile_evidence("Homepage", location_kind="headquarters", location_name="Pune"),
+        _profile_evidence("Wikidata", location_kind="headquarters", location_name="Pune, Maharashtra, India"),
+    ]
+    report = ContradictionDetector().detect(evidence)
+    assert not any(f.theme == "headquarters_conflict" for f in report.findings)
+
+
+def test_office_location_never_compared_as_headquarters():
+    """A job posting's location_kind='office' must never be treated as a
+    headquarters claim, even when it conflicts with a real HQ signal - an
+    office/facility presence is not proof of (or against) headquarters."""
+    evidence = [
+        _profile_evidence("Homepage", location_kind="headquarters", location_name="Mumbai, India"),
+        _profile_evidence("Job Posting", location_kind="office", location_name="Pune, India"),
+    ]
+    report = ContradictionDetector().detect(evidence)
+    assert not any(f.theme == "headquarters_conflict" for f in report.findings)

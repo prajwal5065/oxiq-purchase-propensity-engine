@@ -75,6 +75,19 @@ class EvidenceItem(BaseModel):
     founding_year: int | None = Field(
         default=None, description="Reported founding year, parsed from schema.org foundingDate or Wikidata P571."
     )
+    location_kind: str | None = Field(
+        default=None,
+        description=(
+            "'headquarters' when this evidence is a structured HQ fact (schema.org address or "
+            "Wikidata P159 - both name the company's registered/primary location); 'office' when "
+            "it's a job posting's location, which only shows a hiring/office presence there, not "
+            "that the company is headquartered there. Kept as two distinct values on purpose - see "
+            "ContradictionDetector, which relies on this to never treat an office as HQ evidence."
+        ),
+    )
+    location_name: str | None = Field(
+        default=None, description="Human-readable place name for location_kind, e.g. 'Pune, Maharashtra, India'."
+    )
 
     # Structured Jobs fields - set the same way from the Jobs Collector's
     # RawSignal.payload (Greenhouse/Lever). Null for non-jobs evidence.
@@ -120,6 +133,8 @@ class EvidenceRecord(BaseModel):
     technology_provider: str | None
     employee_count: int | None
     founding_year: int | None
+    location_kind: str | None
+    location_name: str | None
     job_title: str | None
     job_department: str | None
     job_location: str | None

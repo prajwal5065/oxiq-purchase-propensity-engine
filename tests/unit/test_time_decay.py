@@ -22,7 +22,10 @@ def test_decay_weight_buckets():
     assert decay_weight(now - timedelta(days=1), now=now) == 1.0
     assert decay_weight(now - timedelta(days=30), now=now) == 0.7
     assert decay_weight(now - timedelta(days=200), now=now) == 0.4
-    assert decay_weight(now - timedelta(days=800), now=now) == 0.1
+    assert decay_weight(now - timedelta(days=500), now=now) == 0.15
+    # 2+ years old (e.g. a 2016-2019 style mention) - the "historical"
+    # tier, weighted well below merely "stale" (1-2yr) evidence.
+    assert decay_weight(now - timedelta(days=800), now=now) == 0.05
 
 
 def test_decay_weight_unknown_recency():

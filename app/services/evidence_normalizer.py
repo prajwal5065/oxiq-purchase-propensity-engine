@@ -112,18 +112,22 @@ class EvidenceNormalizer:
         onto evidence it didn't produce.
         """
         url_to_jobs_category = {
-            signal.url: signal.category
+            self._normalize_url(signal.url): signal.category
             for signal in raw_signals
             if signal.url and signal.category in _JOBS_SUBTYPE_CATEGORIES
         }
         url_to_tech_signal = {
-            signal.url: signal for signal in raw_signals if signal.url and signal.source == SignalSource.TECH
+            self._normalize_url(signal.url): signal
+            for signal in raw_signals
+            if signal.url and signal.source == SignalSource.TECH
         }
         url_to_jobs_signal = {
-            signal.url: signal for signal in raw_signals if signal.url and signal.source == SignalSource.JOBS
+            self._normalize_url(signal.url): signal
+            for signal in raw_signals
+            if signal.url and signal.source == SignalSource.JOBS
         }
         url_to_profile_signal = {
-            signal.url: signal
+            self._normalize_url(signal.url): signal
             for signal in raw_signals
             if signal.url and signal.source == SignalSource.COMPANY_PROFILE
         }
@@ -137,7 +141,7 @@ class EvidenceNormalizer:
                 continue
             seen.add(dedupe_key)
 
-            item_url = str(item.url) if item.url else None
+            item_url = self._normalize_url(str(item.url)) if item.url else None
             inherited_category = url_to_jobs_category.get(item_url) if item_url else None
             update: dict = {
                 "collector": item.collector or self._infer_collector(item.source),
@@ -158,6 +162,12 @@ class EvidenceNormalizer:
             if profile_signal is not None:
                 update.update(self._company_profile_fields_from(profile_signal))
 
+            location_kind = update.get("location_kind")
+            if location_kind == "headquarters" and not item.signal_label.lower().startswith("headquarters"):
+                update["signal_label"] = f"Headquarters: {item.signal_label}"
+            elif location_kind == "office" and not item.signal_label.lower().startswith(("office", "facility")):
+                update["signal_label"] = f"Office/facility presence: {item.signal_label}"
+
             enriched = item.model_copy(update=update)
             normalized.append(enriched)
 
@@ -176,13 +186,29 @@ class EvidenceNormalizer:
         }
 
     @staticmethod
+    def _normalize_url(url: str) -> str:
+        """RawSignal.url is a plain `str`; EvidenceItem.url is coerced
+        through Pydantic's `HttpUrl`, which normalizes bare-domain URLs by
+        appending a trailing slash (`https://acme.com` becomes
+        `https://acme.com/`). Comparing the two verbatim silently drops
+        every match for a bare-domain signal - exactly the case a
+        Company Profile signal's homepage URL usually is - so both sides
+        of every URL match in `normalize()` go through this first."""
+        return url.rstrip("/")
+
+    @staticmethod
     def _job_fields_from(signal: RawSignal) -> dict:
         """Structured job_* fields from the Jobs Collector's
         RawSignal.payload (see app/collectors/jobs_collector.py).
         `model_copy(update=...)` does not re-run Pydantic coercion, so
         `posted_at` (an ISO string in the payload, same as the collector
         wrote it) is parsed to a datetime here rather than left as a raw
-        string."""
+        string.
+
+        Also tags this item `location_kind='office'` when the posting has
+        a location - a job posted in a city is evidence of a hiring/office
+        presence there, never proof the company is headquartered there
+        (see `location_kind` on EvidenceItem)."""
         payload = signal.payload
         posted_at = payload.get("posted_at")
         job_posting_date = None
@@ -191,31 +217,73 @@ class EvidenceNormalizer:
                 job_posting_date = datetime.fromisoformat(posted_at)
             except (TypeError, ValueError):
                 job_posting_date = None
-        return {
+        job_location = payload.get("location")
+        fields: dict = {
             "job_title": payload.get("title"),
             "job_department": payload.get("department"),
-            "job_location": payload.get("location"),
+            "job_location": job_location,
             "job_ats_provider": payload.get("provider"),
             "job_posting_date": job_posting_date,
         }
+        if job_location:
+            fields["location_kind"] = "office"
+            fields["location_name"] = job_location
+        return fields
 
     @staticmethod
     def _company_profile_fields_from(signal: RawSignal) -> dict:
-        """Structured employee_count/founding_year from the Company Profile
-        Collector's RawSignal.payload - either the homepage's schema.org
-        JSON-LD (`numberOfEmployees`/`foundingDate`) or Wikidata
-        (`employee_count`/`founding_date` - see
+        """Structured employee_count/founding_year/headquarters from the
+        Company Profile Collector's RawSignal.payload - either the
+        homepage's schema.org JSON-LD (`numberOfEmployees`/`foundingDate`/
+        `headquarters` address) or Wikidata (`employee_count`/
+        `founding_date`/`headquarters_location` - see
         app/collectors/company_profile_collector.py for both shapes). Both
-        providers are normalized to the same plain int here so
-        ContradictionDetector can compare "two sources' employee count" as
-        one field regardless of which provider reported it or how."""
+        providers are normalized to the same plain types here so
+        ContradictionDetector can compare "two sources' employee count" (or
+        headquarters) as one field regardless of which provider reported it
+        or how.
+
+        `location_kind='headquarters'` here (never 'office') because both
+        of these signals are the company's own/registry-reported primary
+        location - as opposed to a single job posting's location, which
+        only means a hiring/office presence exists there (see
+        `_job_fields_from`)."""
         payload = signal.payload
         raw_employees = payload.get("numberOfEmployees", payload.get("employee_count"))
         raw_founding = payload.get("foundingDate", payload.get("founding_date"))
-        return {
+        fields: dict = {
             "employee_count": EvidenceNormalizer._parse_employee_count(raw_employees),
             "founding_year": EvidenceNormalizer._parse_founding_year(raw_founding),
         }
+        headquarters_name = EvidenceNormalizer._parse_headquarters(
+            payload.get("headquarters"), payload.get("headquarters_location")
+        )
+        if headquarters_name:
+            fields["location_kind"] = "headquarters"
+            fields["location_name"] = headquarters_name
+        return fields
+
+    @staticmethod
+    def _parse_headquarters(address: object, wikidata_location: object) -> str | None:
+        """Format either shape of headquarters signal into one readable
+        string: schema.org's `address` is a dict (addressLocality/
+        addressRegion/addressCountry); Wikidata's P159 is a bare entity ID
+        (e.g. 'Q1156484') since the collector doesn't currently resolve
+        entity labels - still kept and shown as such rather than dropped,
+        since even an unresolved ID is a genuine, attributable HQ claim a
+        human can look up, and dropping it would silently prefer the
+        homepage's self-reported address over an independent source."""
+        if isinstance(address, dict) and address:
+            parts = [
+                str(address[key]).strip()
+                for key in ("addressLocality", "addressRegion", "addressCountry")
+                if address.get(key)
+            ]
+            if parts:
+                return ", ".join(parts)
+        if wikidata_location:
+            return f"Wikidata entity {wikidata_location}"
+        return None
 
     @staticmethod
     def _parse_employee_count(raw: object) -> int | None:
