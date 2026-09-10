@@ -5,29 +5,29 @@ export default {
     extend: {
       colors: {
         ink: {
-          900: "#0F1216",
-          800: "#161B21",
-          700: "#1D242C",
-          600: "#2A323C",
-          500: "#3A4450",
+          900: "#0A0E17",
+          800: "#10141F",
+          700: "#161B29",
+          600: "#232A3B",
+          500: "#313A4F",
         },
         paper: {
-          DEFAULT: "#E7E4DC",
-          dim: "#9AA2AC",
-          faint: "#5C6570",
+          DEFAULT: "#F5F6F8",
+          dim: "#A8AFBD",
+          faint: "#6C7486",
         },
         signal: {
-          DEFAULT: "#3ED6C4",
-          dim: "#237A70",
-          glow: "#9FF0E6",
+          DEFAULT: "#00D9A4",
+          dim: "#00A67D",
+          glow: "#6BE8CC",
         },
         amber: {
-          DEFAULT: "#F0A83B",
-          dim: "#8A5F1F",
+          DEFAULT: "#F5A623",
+          dim: "#8A5C12",
         },
         rose: {
-          DEFAULT: "#E4636F",
-          dim: "#7A2E35",
+          DEFAULT: "#FF5C72",
+          dim: "#8A2036",
         },
       },
       fontFamily: {
@@ -40,7 +40,7 @@ export default {
       },
       backgroundImage: {
         "grid-fade":
-          "radial-gradient(circle at 50% 50%, rgba(62,214,196,0.08) 0%, rgba(62,214,196,0) 70%)",
+          "radial-gradient(circle at 50% 50%, rgba(0,217,164,0.08) 0%, rgba(0,217,164,0) 70%)",
       },
       keyframes: {
         sweep: {
