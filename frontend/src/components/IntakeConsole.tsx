@@ -62,7 +62,7 @@ export function IntakeConsole() {
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-signal mb-3">
           Intake &mdash; new dossier
         </p>
-        <h1 className="font-display text-3xl sm:text-4xl text-paper leading-tight mb-3">
+        <h1 className="font-display text-3xl sm:text-4xl font-semibold text-paper leading-tight mb-3">
           Point it at a domain.
           <br />
           It builds the case.
@@ -83,7 +83,7 @@ export function IntakeConsole() {
           <button
             type="submit"
             disabled={isBusy || !domain.trim()}
-            className="bg-signal text-ink-900 font-mono text-xs uppercase tracking-widest font-semibold px-6 py-3 rounded-sm hover:bg-signal-glow transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="bg-signal text-paper font-mono text-xs uppercase tracking-widest font-semibold px-6 py-3 rounded-sm hover:bg-signal-glow transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isBusy ? "Scanning\u2026" : "Open dossier"}
           </button>

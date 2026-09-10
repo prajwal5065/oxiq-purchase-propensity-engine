@@ -125,7 +125,7 @@ export function CompanyPage() {
 
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-display text-3xl text-paper">{data.company.name}</h1>
+          <h1 className="font-display text-3xl font-semibold text-paper">{data.company.name}</h1>
           <div className="flex items-center gap-3 mt-1">
             <p className="font-mono text-sm text-paper-dim">{data.company.domain}</p>
             {data.company.industry && (

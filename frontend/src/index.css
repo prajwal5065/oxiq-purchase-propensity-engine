@@ -4,12 +4,12 @@
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
     @apply bg-ink-900 text-paper font-sans antialiased;
-    background-image: radial-gradient(circle at 15% 0%, rgba(62, 214, 196, 0.06) 0%, rgba(62, 214, 196, 0) 45%);
+    background-image: radial-gradient(circle at 15% 0%, rgba(0, 201, 167, 0.05) 0%, rgba(0, 201, 167, 0) 45%);
     background-attachment: fixed;
   }
 
