@@ -83,7 +83,7 @@ export function IntakeConsole() {
           <button
             type="submit"
             disabled={isBusy || !domain.trim()}
-            className="bg-signal text-paper font-mono text-xs uppercase tracking-widest font-semibold px-6 py-3 rounded-sm hover:bg-signal-glow transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="bg-signal text-ink-900 font-mono text-xs uppercase tracking-widest font-semibold px-6 py-3 rounded-sm hover:bg-signal-glow transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isBusy ? "Scanning\u2026" : "Open dossier"}
           </button>
