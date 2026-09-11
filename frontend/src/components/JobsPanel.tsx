@@ -69,7 +69,7 @@ export function JobsPanel({ evidence }: { evidence: EvidenceRecord[] }) {
                 )}
               </div>
               {item.category && (HIRING_CATEGORIES.has(item.category) || item.category.includes("hiring")) && (
-                <span className="font-mono text-[10px] uppercase tracking-wide text-signal shrink-0 border border-signal/40 rounded-sm px-1.5 py-0.5">
+                <span className="font-mono text-[10px] uppercase tracking-wide text-signal shrink-0 border border-signal/40 rounded-md px-1.5 py-0.5">
                   {formatLabel(item.category)}
                 </span>
               )}

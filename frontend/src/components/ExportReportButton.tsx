@@ -53,7 +53,7 @@ export function ExportReportButton({ dossier }: { dossier: DossierData }) {
     <div className="relative" ref={rootRef}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-paper-dim border border-ink-600 rounded-sm px-3 py-1.5 hover:text-signal hover:border-signal transition-colors"
+        className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-paper-dim border border-ink-600 rounded-md px-3 py-1.5 hover:text-signal hover:border-signal transition-colors"
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -64,7 +64,7 @@ export function ExportReportButton({ dossier }: { dossier: DossierData }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 mt-1 w-56 border border-ink-600 bg-ink-800 rounded-sm shadow-lg z-20 overflow-hidden"
+          className="absolute right-0 mt-1 w-56 border border-ink-600 bg-ink-800 rounded-md shadow-lg z-20 overflow-hidden"
         >
           {OPTIONS.map((opt) => (
             <button
