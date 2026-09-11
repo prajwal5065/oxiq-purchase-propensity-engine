@@ -36,7 +36,7 @@ export function PillarRadar({ pillars }: { pillars: PillarScore[] }) {
           top: CENTER - MAX_RADIUS,
           left: CENTER - MAX_RADIUS,
           background:
-            "conic-gradient(from 0deg, rgba(0,217,164,0.55) 0deg, rgba(0,217,164,0) 55deg, rgba(0,217,164,0) 360deg)",
+            "conic-gradient(from 0deg, rgba(62,214,196,0.55) 0deg, rgba(62,214,196,0) 55deg, rgba(62,214,196,0) 360deg)",
         }}
       />
 
@@ -46,7 +46,7 @@ export function PillarRadar({ pillars }: { pillars: PillarScore[] }) {
             key={fraction}
             points={polygonPoints(fraction)}
             fill="none"
-            stroke="#232A3B"
+            stroke="#2A323C"
             strokeWidth={1}
           />
         ))}
@@ -54,14 +54,14 @@ export function PillarRadar({ pillars }: { pillars: PillarScore[] }) {
         {PILLAR_TYPES.map((_, i) => {
           const [x, y] = pointForAxis(i, 1);
           return (
-            <line key={i} x1={CENTER} y1={CENTER} x2={x} y2={y} stroke="#161B29" strokeWidth={1} />
+            <line key={i} x1={CENTER} y1={CENTER} x2={x} y2={y} stroke="#1D242C" strokeWidth={1} />
           );
         })}
 
         <polygon
           points={scorePoints}
-          fill="rgba(0, 217, 164, 0.18)"
-          stroke="#00D9A4"
+          fill="rgba(62, 214, 196, 0.18)"
+          stroke="#3ED6C4"
           strokeWidth={2}
           strokeLinejoin="round"
         />
@@ -69,7 +69,7 @@ export function PillarRadar({ pillars }: { pillars: PillarScore[] }) {
         {PILLAR_TYPES.map((type, i) => {
           const pillar = byType.get(type);
           const [x, y] = pointForAxis(i, (pillar?.score ?? 0) / 100);
-          return <circle key={type} cx={x} cy={y} r={3.5} fill="#00D9A4" />;
+          return <circle key={type} cx={x} cy={y} r={3.5} fill="#3ED6C4" />;
         })}
       </svg>
 
