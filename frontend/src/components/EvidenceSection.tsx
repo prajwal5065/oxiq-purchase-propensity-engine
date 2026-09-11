@@ -99,7 +99,7 @@ export function EvidenceSection({
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
-                  className={`font-mono text-[10px] uppercase tracking-wide px-2 py-1 rounded-sm border transition-colors ${
+                  className={`font-mono text-[10px] uppercase tracking-wide px-2 py-1 rounded-md border transition-colors ${
                     filter === f.value
                       ? "border-signal text-signal"
                       : "border-ink-600 text-paper-faint hover:text-paper-dim"

@@ -129,7 +129,7 @@ export function CompanyPage() {
           <div className="flex items-center gap-3 mt-1">
             <p className="font-mono text-sm text-paper-dim">{data.company.domain}</p>
             {data.company.industry && (
-              <span className="font-mono text-[10px] uppercase tracking-wide text-paper-faint border border-ink-600 rounded-sm px-1.5 py-0.5">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-paper-faint border border-ink-600 rounded-md px-1.5 py-0.5">
                 {data.company.industry}
               </span>
             )}

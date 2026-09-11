@@ -74,7 +74,7 @@ export function CompanyList() {
               <button
                 key={f.value}
                 onClick={() => setFilter(f.value)}
-                className={`font-mono text-[10px] uppercase tracking-wide px-2 py-1 rounded-sm border transition-colors ${
+                className={`font-mono text-[10px] uppercase tracking-wide px-2 py-1 rounded-md border transition-colors ${
                   filter === f.value
                     ? "border-signal text-signal"
                     : "border-ink-600 text-paper-faint hover:text-paper-dim"
@@ -130,7 +130,7 @@ export function CompanyList() {
         <button
           onClick={() => setOffset(items.length)}
           disabled={loading}
-          className="mt-3 w-full font-mono text-xs uppercase tracking-widest text-paper-dim border border-ink-600 rounded-sm py-2 hover:border-signal hover:text-signal transition-colors disabled:opacity-50"
+          className="mt-3 w-full font-mono text-xs uppercase tracking-widest text-paper-dim border border-ink-600 rounded-md py-2 hover:border-signal hover:text-signal transition-colors disabled:opacity-50"
         >
           {loading ? "Loading\u2026" : "Load more"}
         </button>

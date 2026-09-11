@@ -24,7 +24,7 @@ export function PriorityStamp({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-sm border-2 ${config.border} ${config.color} ${sizeClasses} font-mono font-semibold uppercase tracking-widest -rotate-2 select-none`}
+      className={`inline-flex items-center gap-1.5 rounded-md border-2 ${config.border} ${config.color} ${sizeClasses} font-mono font-semibold uppercase tracking-widest -rotate-2 select-none`}
       style={{ boxShadow: "0 0 0 1px rgba(0,0,0,0.2) inset" }}
     >
       {config.label}

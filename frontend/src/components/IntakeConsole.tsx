@@ -78,12 +78,12 @@ export function IntakeConsole() {
             onChange={(e) => setDomain(e.target.value)}
             placeholder="acme.com"
             disabled={isBusy}
-            className="flex-1 bg-ink-900 border border-ink-500 rounded-sm px-4 py-3 font-mono text-sm text-paper placeholder:text-paper-faint focus:border-signal disabled:opacity-50"
+            className="flex-1 bg-ink-900 border border-ink-500 rounded-md px-4 py-3 font-mono text-sm text-paper placeholder:text-paper-faint focus:border-signal disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={isBusy || !domain.trim()}
-            className="bg-signal text-ink-900 font-mono text-xs uppercase tracking-widest font-semibold px-6 py-3 rounded-sm hover:bg-signal-glow transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="bg-signal text-ink-900 font-mono text-xs uppercase tracking-widest font-semibold px-6 py-3 rounded-md hover:bg-signal-glow transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isBusy ? "Scanning\u2026" : "Open dossier"}
           </button>

@@ -21,7 +21,7 @@ export function ChangeAnalysisPanel({ changeAnalysis }: { changeAnalysis: Decisi
                 {factor.evidence_needed.map((need, j) => (
                   <span
                     key={j}
-                    className="font-mono text-[10px] text-paper-faint border border-dashed border-ink-600 rounded-sm px-1.5 py-0.5"
+                    className="font-mono text-[10px] text-paper-faint border border-dashed border-ink-600 rounded-md px-1.5 py-0.5"
                   >
                     {need}
                   </span>
